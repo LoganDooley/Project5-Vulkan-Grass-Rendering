@@ -39,6 +39,8 @@ public:
     void RecordCommandBuffers();
     void RecordComputeCommandBuffer();
 
+    void CreateSynchronizationPrimitives();
+
     void Frame();
 
 private:
@@ -56,12 +58,15 @@ private:
     VkDescriptorSetLayout cameraDescriptorSetLayout;
     VkDescriptorSetLayout modelDescriptorSetLayout;
     VkDescriptorSetLayout timeDescriptorSetLayout;
-    
+    VkDescriptorSetLayout computeDescriptorSetLayout;
+
     VkDescriptorPool descriptorPool;
 
     VkDescriptorSet cameraDescriptorSet;
     std::vector<VkDescriptorSet> modelDescriptorSets;
     VkDescriptorSet timeDescriptorSet;
+    std::vector<VkDescriptorSet> grassDescriptorSets;
+    std::vector<VkDescriptorSet> computeDescriptorSets;
 
     VkPipelineLayout graphicsPipelineLayout;
     VkPipelineLayout grassPipelineLayout;
@@ -79,4 +84,6 @@ private:
 
     std::vector<VkCommandBuffer> commandBuffers;
     VkCommandBuffer computeCommandBuffer;
+
+    VkSemaphore computeFinishedSemaphore;
 };
