@@ -1,66 +1,53 @@
-cmake_minimum_required(VERSION 2.8.12)
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
+cmake_minimum_required(VERSION 3.25)
+project(vulkan_grass_rendering LANGUAGES CXX)
 
-project(cis565_project5_vulkan_grass_rendering)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
-OPTION(USE_D2D_WSI "Build the project using Direct to Display swapchain" OFF)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
-find_package(Vulkan REQUIRED)
+find_package(Vulkan 1.4 REQUIRED)
 
-IF(WIN32)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DVK_USE_PLATFORM_WIN32_KHR")
-ELSE(WIN32)
-    find_package(Threads REQUIRED)
-IF(USE_D2D_WSI)
-    MESSAGE("Using direct to display extension...")
-    add_definitions(-D_DIRECT2DISPLAY)
-ELSE(USE_D2D_WSI)
-    find_package(XCB REQUIRED)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DVK_USE_PLATFORM_XCB_KHR")
-ENDIF(USE_D2D_WSI)
-    # Todo : android?
-ENDIF(WIN32)
+# Include the custom slang compiling step
+include(cmake/SlangShaders.cmake)
 
-# Set preprocessor defines
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DNOMINMAX -D_USE_MATH_DEFINES")
+# External packages
+set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_TESTS    OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_DOCS     OFF CACHE BOOL "" FORCE)
+set(GLFW_INSTALL        OFF CACHE BOOL "" FORCE)
+add_subdirectory(external/glfw)
 
-add_definitions(-D_CRT_SECURE_NO_WARNINGS)
-set(CMAKE_CXX_STANDARD 11)
+set(GLM_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(GLM_ENABLE_CXX_20 ON CACHE BOOL "" FORCE)
+add_subdirectory(external/glm)
 
-# Enable the creation of folders for Visual Studio projects
-set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+set(SRC_DIR "${CMAKE_SOURCE_DIR}/src")
+file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "${SRC_DIR}/*.cpp" "${SRC_DIR}/*.h")
 
-function(ExternalTarget folder target)
-  set_property(TARGET ${target} PROPERTY FOLDER ${folder})
-endfunction(ExternalTarget)
+add_executable(vulkan_grass_rendering ${SOURCES})
 
-function(InternalTarget folder target)
-  ExternalTarget("${folder}" ${target})
-  if (MSVC)
-    get_target_property(targetSources ${target} SOURCES)
-    foreach(sourceFile IN ITEMS ${targetSources})
-        if (IS_ABSOLUTE "${sourceFile}")
-          file(RELATIVE_PATH sourceFile "${CMAKE_CURRENT_SOURCE_DIR}" "${sourceFile}")
-        endif()
-        get_filename_component(sourceDir "${sourceFile}" PATH)
-        string(REPLACE "/" "\\" sourceDir "${sourceDir}")
-        source_group("${sourceDir}" FILES "${sourceFile}")
-    endforeach()
-  endif()
-endfunction(InternalTarget)
+target_include_directories(vulkan_grass_rendering PRIVATE "${SRC_DIR}" "${CMAKE_SOURCE_DIR}/external/stb")
 
-# Compiler specific stuff
-IF(MSVC)
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc")
-ENDIF(MSVC)
+target_link_libraries(vulkan_grass_rendering PRIVATE Vulkan::Headers glfw glm::glm)
 
-IF(WIN32)
-  # Nothing here (yet)
-ELSE(WIN32)
-    link_libraries(${XCB_LIBRARIES} ${VULKAN_LIB})
-ENDIF(WIN32)
+target_compile_definitions(vulkan_grass_rendering PRIVATE
+    VULKAN_HPP_NO_CONSTRUCTORS
+    VULKAN_HPP_NO_STRUCT_SETTERS
+    GLFW_INCLUDE_NONE
+    GLM_FORCE_DEPTH_ZERO_TO_ONE
+    GLM_FORCE_RADIANS
+    NOMINMAX
+)
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/")
+if(MSVC)
+    target_compile_options(vulkan_grass_rendering PRIVATE /W4 /permissive-)
+    set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT vulkan_grass_rendering)
+endif()
 
-add_subdirectory(external)
-add_subdirectory(src)
+file(GLOB SHADER_SOURCES CONFIGURE_DEPENDS "${SRC_DIR}/shaders/*.slang")
+# Call custom helper for compiling slang shaders
+add_slang_shaders(vulkan_grass_rendering
+    SOURCES ${SHADER_SOURCES}
+    INCLUDE_DIRS "${SRC_DIR}/shaders/modules")
