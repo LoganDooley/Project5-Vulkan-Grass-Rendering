@@ -4,6 +4,7 @@
 #include "window.h"
 #include "shader_utils.h"
 #include "camera.h"
+#include "pipeline_utils.h"
 
 #include <array>
 #include <stdexcept>
@@ -57,14 +58,14 @@ Renderer::Renderer(const VulkanContext &context, Window &window) :
 
     m_positionsBuffer = Buffer(m_context.getAllocator(), m_context.getDevice(), 3 * sizeof(glm::vec4), vk::BufferUsageFlagBits::eStorageBuffer, false);
 
-    // Create triangle pipeline
+    // Create pipeline layouts
+    createMeshPipelineLayout();
+    createAnimPipelineLayout();
+
+    // Create pipelines
     createTrianglePipeline();
-
-    // Create the anim pipeline
-    createAnimPipeline();
-
-    // Create ground pipeline
     createGroundPipeline();
+    createAnimPipeline();
 }
 
 void Renderer::drawFrame(const Camera& camera, float totalTime)
@@ -344,16 +345,8 @@ void Renderer::recreateSwapchain()
     m_window.clearResized();
 }
 
-void Renderer::createTrianglePipeline()
+void Renderer::createMeshPipelineLayout()
 {
-    const vk::raii::Device& device = m_context.getDevice();
-    
-    // Create shader modules
-    vk::raii::ShaderModule taskModule = ShaderUtils::createShaderModule(device, "shaders/triangle.task.spv");
-    vk::raii::ShaderModule meshModule = ShaderUtils::createShaderModule(device, "shaders/triangle.mesh.spv");
-    vk::raii::ShaderModule fragModule = ShaderUtils::createShaderModule(device, "shaders/triangle.frag.spv");
-    
-    // Create layout
     m_pcStages = vk::ShaderStageFlagBits::eTaskEXT | vk::ShaderStageFlagBits::eMeshEXT | vk::ShaderStageFlagBits::eFragment;
     vk::PushConstantRange pcRange = {
         .stageFlags = m_pcStages,
@@ -365,6 +358,31 @@ void Renderer::createTrianglePipeline()
         .pPushConstantRanges = &pcRange
     };
     m_meshPipelineLayout = vk::raii::PipelineLayout(m_context.getDevice(), pipelineLayoutCreateInfo);
+}
+
+void Renderer::createAnimPipelineLayout()
+{
+    vk::PushConstantRange range = {
+        .stageFlags = vk::ShaderStageFlagBits::eCompute,
+        .offset = 0,
+        .size = sizeof(AnimPushConstants)
+    };
+
+    vk::PipelineLayoutCreateInfo pipelineLayoutCreateInfo = {
+        .pushConstantRangeCount = 1,
+        .pPushConstantRanges = &range
+    };
+    m_animPipelineLayout = vk::raii::PipelineLayout(m_context.getDevice(), pipelineLayoutCreateInfo);
+}
+
+void Renderer::createTrianglePipeline()
+{
+    const vk::raii::Device& device = m_context.getDevice();
+    
+    // Create shader modules
+    vk::raii::ShaderModule taskModule = ShaderUtils::createShaderModule(device, "shaders/triangle.task.spv");
+    vk::raii::ShaderModule meshModule = ShaderUtils::createShaderModule(device, "shaders/triangle.mesh.spv");
+    vk::raii::ShaderModule fragModule = ShaderUtils::createShaderModule(device, "shaders/triangle.frag.spv");
 
     std::vector<vk::PipelineShaderStageCreateInfo> stages = {
         {
@@ -384,35 +402,7 @@ void Renderer::createTrianglePipeline()
         }
     };
 
-    m_trianglePipeline = createMeshPipeline(stages, m_meshPipelineLayout);
-}
-
-void Renderer::createAnimPipeline()
-{
-    vk::raii::ShaderModule module = ShaderUtils::createShaderModule(m_context.getDevice(), "shaders/triangle_anim.comp.spv");
-
-    vk::PushConstantRange range = {
-        .stageFlags = vk::ShaderStageFlagBits::eCompute,
-        .offset = 0,
-        .size = sizeof(AnimPushConstants)
-    };
-
-    vk::PipelineLayoutCreateInfo pipelineLayoutCreateInfo = {
-        .pushConstantRangeCount = 1,
-        .pPushConstantRanges = &range
-    };
-    m_animPipelineLayout = vk::raii::PipelineLayout(m_context.getDevice(), pipelineLayoutCreateInfo);
-
-    vk::ComputePipelineCreateInfo pipelineCreateInfo = {
-        .stage = {
-            .stage = vk::ShaderStageFlagBits::eCompute,
-            .module = *module,
-            .pName = "computeMain"
-        },
-        .layout = *m_animPipelineLayout
-    };
-
-    m_animPipeline = vk::raii::Pipeline(m_context.getDevice(), nullptr, pipelineCreateInfo);
+    m_trianglePipeline = PipelineUtils::createMeshPipeline(device, stages, m_meshPipelineLayout, m_swapchain.getFormat(), m_depthImage.getFormat());
 }
 
 void Renderer::createGroundPipeline()
@@ -436,85 +426,14 @@ void Renderer::createGroundPipeline()
         }
     };
 
-    m_groundPipeline = createMeshPipeline(stages, m_meshPipelineLayout);
+    m_groundPipeline = PipelineUtils::createMeshPipeline(device, stages, m_meshPipelineLayout, m_swapchain.getFormat(), m_depthImage.getFormat());
 }
 
-vk::raii::Pipeline Renderer::createMeshPipeline(const std::vector<vk::PipelineShaderStageCreateInfo> &stages, vk::PipelineLayout layout)
+void Renderer::createAnimPipeline()
 {
-    // Viewport
-    vk::PipelineViewportStateCreateInfo viewportState = {
-        .viewportCount = 1,
-        .scissorCount = 1
-    };
+    vk::raii::ShaderModule module = ShaderUtils::createShaderModule(m_context.getDevice(), "shaders/triangle_anim.comp.spv");
 
-    // Rasterization
-    vk::PipelineRasterizationStateCreateInfo rasterizationState = {
-        .polygonMode = vk::PolygonMode::eFill,
-        .cullMode = vk::CullModeFlagBits::eNone,
-        .frontFace = vk::FrontFace::eCounterClockwise,
-        .lineWidth = 1.0f
-    };
-
-    // Multisampling
-    vk::PipelineMultisampleStateCreateInfo multisampleState = {
-        .rasterizationSamples = vk::SampleCountFlagBits::e1
-    };
-
-    // Color blending
-    vk::PipelineColorBlendAttachmentState blendAttachment = {
-        .blendEnable = vk::False,
-        .colorWriteMask = vk::ColorComponentFlagBits::eR | 
-            vk::ColorComponentFlagBits::eG |
-            vk::ColorComponentFlagBits::eB |
-            vk::ColorComponentFlagBits::eA,
-    };
-
-    vk::PipelineColorBlendStateCreateInfo colorBlendState = { 
-        .attachmentCount = 1, 
-        .pAttachments = &blendAttachment 
-    };
-
-    // Depth state
-    vk::PipelineDepthStencilStateCreateInfo depthStencilState = {
-        .depthTestEnable = vk::True,
-        .depthWriteEnable = vk::True,
-        .depthCompareOp = vk::CompareOp::eGreater
-    };
-
-    // Dynamic state
-    std::array<vk::DynamicState, 2> dynamicStates = {
-        vk::DynamicState::eViewport,
-        vk::DynamicState::eScissor
-    };
-
-    vk::PipelineDynamicStateCreateInfo dynamicState = {
-        .dynamicStateCount = static_cast<uint32_t>(dynamicStates.size()),
-        .pDynamicStates = dynamicStates.data()
-    };
-
-    // Dynamic rendering
-    vk::Format colorFormat = m_swapchain.getFormat();
-    vk::PipelineRenderingCreateInfo renderingCreateInfo = {
-        .colorAttachmentCount = 1,
-        .pColorAttachmentFormats = &colorFormat,
-        .depthAttachmentFormat = m_depthImage.getFormat()
-    };
-
-    // Create the pipeline
-    vk::GraphicsPipelineCreateInfo pipelineCreateInfo = {
-        .pNext = &renderingCreateInfo,
-        .stageCount = static_cast<uint32_t>(stages.size()),
-        .pStages = stages.data(),
-        .pViewportState = &viewportState,
-        .pRasterizationState = &rasterizationState,
-        .pMultisampleState = &multisampleState,
-        .pDepthStencilState = &depthStencilState,
-        .pColorBlendState = &colorBlendState,
-        .pDynamicState = &dynamicState,
-        .layout = layout
-    };
-
-    return vk::raii::Pipeline(m_context.getDevice(), nullptr, pipelineCreateInfo);
+    m_animPipeline = PipelineUtils::createComputePipeline(m_context.getDevice(), module, m_animPipelineLayout);
 }
 
 void Renderer::createDepthImage()

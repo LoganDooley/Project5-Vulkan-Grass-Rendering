@@ -42,9 +42,11 @@ private:
 
     void recreateSwapchain();
 
+    void createMeshPipelineLayout();
+    void createAnimPipelineLayout();
     void createTrianglePipeline();
-    void createAnimPipeline();
     void createGroundPipeline();
+    void createAnimPipeline();
 
     // Pipeline helpers
     vk::raii::Pipeline createMeshPipeline(const std::vector<vk::PipelineShaderStageCreateInfo>& stages, vk::PipelineLayout layout);

@@ -8,7 +8,7 @@ Application::Application() :
     m_window(1280, 720, "Vulkan Grass"),
     m_context(m_window),
     m_renderer(m_context, m_window),
-    m_camera(glm::vec3(0.0f, 0.0f, 3.0f))
+    m_camera(glm::vec3(0.0f, 1.0f, 3.0f))
 {
     
 }
