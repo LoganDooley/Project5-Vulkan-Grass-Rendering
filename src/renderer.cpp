@@ -55,8 +55,13 @@ Renderer::Renderer(const VulkanContext &context, Window &window) :
     // Create depth image
     createDepthImage();
 
+    m_positionsBuffer = Buffer(m_context.getAllocator(), m_context.getDevice(), 3 * sizeof(glm::vec4), vk::BufferUsageFlagBits::eStorageBuffer, false);
+
     // Create triangle pipeline
     createTrianglePipeline();
+
+    // Create the anim pipeline
+    createAnimPipeline();
 }
 
 void Renderer::drawFrame(const Camera& camera, float totalTime)
@@ -98,6 +103,40 @@ void Renderer::drawFrame(const Camera& camera, float totalTime)
     commandBuffer.reset();
     commandBuffer.begin(vk::CommandBufferBeginInfo{
         .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit
+    });
+
+    // - Wait for mesh shader before we overwrite
+    vk::MemoryBarrier2 readBeforeWrite = {
+        .srcStageMask  = vk::PipelineStageFlagBits2::eTaskShaderEXT | vk::PipelineStageFlagBits2::eMeshShaderEXT,
+        .srcAccessMask = vk::AccessFlagBits2::eShaderStorageRead,
+        .dstStageMask  = vk::PipelineStageFlagBits2::eComputeShader,
+        .dstAccessMask = vk::AccessFlagBits2::eShaderStorageWrite,
+    };
+
+    commandBuffer.pipelineBarrier2(vk::DependencyInfo{ 
+        .memoryBarrierCount = 1, 
+        .pMemoryBarriers = &readBeforeWrite 
+    });
+
+    // - Run compute shader
+    commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, *m_animPipeline);
+    AnimPushConstants animPc = { 
+        .positions = m_positionsBuffer.getDeviceAddress(), 
+        .time = totalTime 
+    };
+    commandBuffer.pushConstants<AnimPushConstants>(*m_animPipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, animPc);
+    commandBuffer.dispatch(1, 1, 1);
+
+    // - Finish writes before read
+    vk::MemoryBarrier2 writeBeforeRead = {
+        .srcStageMask  = vk::PipelineStageFlagBits2::eComputeShader,
+        .srcAccessMask = vk::AccessFlagBits2::eShaderStorageWrite,
+        .dstStageMask  = vk::PipelineStageFlagBits2::eTaskShaderEXT | vk::PipelineStageFlagBits2::eMeshShaderEXT,
+        .dstAccessMask = vk::AccessFlagBits2::eShaderStorageRead,
+    };
+    commandBuffer.pipelineBarrier2(vk::DependencyInfo{ 
+        .memoryBarrierCount = 1, 
+        .pMemoryBarriers = &writeBeforeRead 
     });
 
     // - Prepare image to be cleared
@@ -159,7 +198,8 @@ void Renderer::drawFrame(const Camera& camera, float totalTime)
     commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *m_trianglePipeline);
     // - Add push constants
     PushConstants pc = {
-        .camera = frameData.cameraBuffer.getDeviceAddress()
+        .camera = frameData.cameraBuffer.getDeviceAddress(),
+        .positions = m_positionsBuffer.getDeviceAddress()
     };
     commandBuffer.pushConstants<PushConstants>(*m_trianglePipelineLayout, m_pcStages, 0, pc);
     commandBuffer.setViewport(0, 
@@ -409,6 +449,34 @@ void Renderer::createTrianglePipeline()
     };
 
     m_trianglePipeline = vk::raii::Pipeline(m_context.getDevice(), nullptr, pipelineCreateInfo);
+}
+
+void Renderer::createAnimPipeline()
+{
+    vk::raii::ShaderModule module = ShaderUtils::createShaderModule(m_context.getDevice(), "shaders/triangle_anim.comp.spv");
+
+    vk::PushConstantRange range = {
+        .stageFlags = vk::ShaderStageFlagBits::eCompute,
+        .offset = 0,
+        .size = sizeof(AnimPushConstants)
+    };
+
+    vk::PipelineLayoutCreateInfo pipelineLayoutCreateInfo = {
+        .pushConstantRangeCount = 1,
+        .pPushConstantRanges = &range
+    };
+    m_animPipelineLayout = vk::raii::PipelineLayout(m_context.getDevice(), pipelineLayoutCreateInfo);
+
+    vk::ComputePipelineCreateInfo pipelineCreateInfo = {
+        .stage = {
+            .stage = vk::ShaderStageFlagBits::eCompute,
+            .module = *module,
+            .pName = "computeMain"
+        },
+        .layout = *m_animPipelineLayout
+    };
+
+    m_animPipeline = vk::raii::Pipeline(m_context.getDevice(), nullptr, pipelineCreateInfo);
 }
 
 void Renderer::createDepthImage()

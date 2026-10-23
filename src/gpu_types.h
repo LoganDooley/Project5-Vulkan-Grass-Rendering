@@ -13,4 +13,10 @@ static_assert(sizeof(CameraData) == 208, "CameraData must match the size in Slan
 
 struct PushConstants {
     vk::DeviceAddress camera; // Gpu address of camera buffer
+    vk::DeviceAddress positions;
+};
+
+struct AnimPushConstants {
+    vk::DeviceAddress positions;
+    float time;
 };

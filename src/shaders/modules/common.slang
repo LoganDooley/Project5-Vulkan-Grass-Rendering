@@ -9,4 +9,10 @@ public struct CameraData {
 
 public struct PushConstants {
     public CameraData *camera;
+    public float4 *positions;
+};
+
+public struct AnimPushConstants {
+    public float4 *positions;
+    public float time;
 };

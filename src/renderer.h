@@ -43,6 +43,7 @@ private:
     void recreateSwapchain();
 
     void createTrianglePipeline();
+    void createAnimPipeline();
 
     void createDepthImage();
 
@@ -52,9 +53,12 @@ private:
     Image m_depthImage;
     vk::raii::PipelineLayout m_trianglePipelineLayout{nullptr};
     vk::raii::Pipeline m_trianglePipeline{nullptr}; 
+    vk::raii::PipelineLayout m_animPipelineLayout{nullptr};
+    vk::raii::Pipeline m_animPipeline{nullptr};
     vk::raii::CommandPool m_commandPool{nullptr};
     std::array<FrameData, 2> m_frames;
     std::vector<vk::raii::Semaphore> m_renderFinishedSemaphores;
     uint32_t m_frameIndex = 0;
     vk::ShaderStageFlags m_pcStages;
+    Buffer m_positionsBuffer;
 };
