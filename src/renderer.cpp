@@ -2,6 +2,7 @@
 
 #include "vulkan_context.h"
 #include "window.h"
+#include "shader_utils.h"
 
 #include <array>
 #include <stdexcept>
@@ -44,6 +45,9 @@ Renderer::Renderer(const VulkanContext &context, Window &window) :
         vk::SemaphoreCreateInfo semaphoreCreateInfo = {};
         m_renderFinishedSemaphores.emplace_back(context.getDevice(), semaphoreCreateInfo);
     }
+
+    // Create triangle pipeline
+    createTrianglePipeline();
 }
 
 void Renderer::drawFrame()
@@ -111,6 +115,28 @@ void Renderer::drawFrame()
     };
 
     commandBuffer.beginRendering(renderingInfo);
+
+    // Run triangle pipeline
+    vk::Extent2D extent = m_swapchain.getExtent();
+    commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *m_trianglePipeline);
+    commandBuffer.setViewport(0, 
+        vk::Viewport {
+            .x = 0.0f,
+            .y = 0.0f,
+            .width = static_cast<float>(extent.width),
+            .height = static_cast<float>(extent.height),
+            .minDepth = 0.0f,
+            .maxDepth = 1.0f,
+        }
+    );
+    commandBuffer.setScissor(0, 
+        vk::Rect2D {
+            .offset = { 0, 0 },
+            .extent = extent
+        }
+    );
+    commandBuffer.drawMeshTasksEXT(1, 1, 1);
+
     commandBuffer.endRendering();
 
     // - Convert to present mode
@@ -218,4 +244,102 @@ void Renderer::recreateSwapchain()
     }
 
     m_window.clearResized();
+}
+
+void Renderer::createTrianglePipeline()
+{
+    std::vector<uint32_t> code = ShaderLoader::readSpirv("shaders/triangle.spv");
+    vk::ShaderModuleCreateInfo moduleInfo = {
+        .codeSize = code.size() * sizeof(uint32_t),
+        .pCode = code.data()
+    };
+    vk::raii::ShaderModule shaderModule(m_context.getDevice(), moduleInfo);
+
+    m_trianglePipelineLayout = vk::raii::PipelineLayout(m_context.getDevice(), vk::PipelineLayoutCreateInfo{});
+
+    std::array<vk::PipelineShaderStageCreateInfo, 3> stages = {
+        {
+            {
+                .stage = vk::ShaderStageFlagBits::eTaskEXT,
+                .module = *shaderModule,
+                .pName = "taskMain"
+            },
+            {
+                .stage = vk::ShaderStageFlagBits::eMeshEXT,
+                .module = *shaderModule,
+                .pName = "meshMain"
+            },
+            {
+                .stage = vk::ShaderStageFlagBits::eFragment,
+                .module = *shaderModule,
+                .pName = "fragMain"
+            }
+        },
+    };
+
+    // Viewport
+    vk::PipelineViewportStateCreateInfo viewportState = {
+        .viewportCount = 1,
+        .scissorCount = 1
+    };
+
+    // Rasterization
+    vk::PipelineRasterizationStateCreateInfo rasterizationState = {
+        .polygonMode = vk::PolygonMode::eFill,
+        .cullMode = vk::CullModeFlagBits::eNone,
+        .frontFace = vk::FrontFace::eCounterClockwise,
+        .lineWidth = 1.0f
+    };
+
+    // Multisampling
+    vk::PipelineMultisampleStateCreateInfo multisampleState = {
+        .rasterizationSamples = vk::SampleCountFlagBits::e1
+    };
+
+    // Color blending
+    vk::PipelineColorBlendAttachmentState blendAttachment = {
+        .blendEnable = vk::False,
+        .colorWriteMask = vk::ColorComponentFlagBits::eR | 
+            vk::ColorComponentFlagBits::eG |
+            vk::ColorComponentFlagBits::eB |
+            vk::ColorComponentFlagBits::eA,
+    };
+
+    vk::PipelineColorBlendStateCreateInfo colorBlendState = { 
+        .attachmentCount = 1, 
+        .pAttachments = &blendAttachment 
+    };
+
+    // Dynamic state
+    std::array<vk::DynamicState, 2> dynamicStates = {
+        vk::DynamicState::eViewport,
+        vk::DynamicState::eScissor
+    };
+
+    vk::PipelineDynamicStateCreateInfo dynamicState = {
+        .dynamicStateCount = static_cast<uint32_t>(dynamicStates.size()),
+        .pDynamicStates = dynamicStates.data()
+    };
+
+    // Dynamic rendering
+    vk::Format colorFormat = m_swapchain.getFormat();
+    vk::PipelineRenderingCreateInfo renderingCreateInfo = {
+        .colorAttachmentCount = 1,
+        .pColorAttachmentFormats = &colorFormat
+    };
+
+    // Create the pipeline
+    vk::GraphicsPipelineCreateInfo pipelineCreateInfo = {
+        .pNext = &renderingCreateInfo,
+        .stageCount = static_cast<uint32_t>(stages.size()),
+        .pStages = stages.data(),
+        .pViewportState = &viewportState,
+        .pRasterizationState = &rasterizationState,
+        .pMultisampleState = &multisampleState,
+        .pColorBlendState = &colorBlendState,
+        .pDynamicState = &dynamicState,
+        .layout = *m_trianglePipelineLayout
+    };
+
+    m_trianglePipeline = vk::raii::Pipeline(m_context.getDevice(), nullptr, pipelineCreateInfo);
 }

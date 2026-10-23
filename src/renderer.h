@@ -36,9 +36,13 @@ private:
 
     void recreateSwapchain();
 
+    void createTrianglePipeline();
+
     const VulkanContext& m_context;
     Window& m_window;
     Swapchain m_swapchain;
+    vk::raii::PipelineLayout m_trianglePipelineLayout{nullptr};
+    vk::raii::Pipeline m_trianglePipeline{nullptr}; 
     vk::raii::CommandPool m_commandPool{nullptr};
     std::array<FrameData, 2> m_frames;
     std::vector<vk::raii::Semaphore> m_renderFinishedSemaphores;
