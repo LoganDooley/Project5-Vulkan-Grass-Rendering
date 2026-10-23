@@ -2,6 +2,7 @@
 
 #include "window.h"
 #include "vulkan_context.h"
+#include "renderer.h"
 
 #include <chrono>
 
@@ -19,6 +20,7 @@ public:
 private:
     Window m_window;
     VulkanContext m_context;
+    Renderer m_renderer;
 
     std::chrono::steady_clock::time_point m_lastFrameTime;
 };

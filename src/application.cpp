@@ -6,9 +6,10 @@
 
 Application::Application() : 
     m_window(1280, 720, "Vulkan Grass"),
-    m_context(m_window)
+    m_context(m_window),
+    m_renderer(m_context, m_window)
 {
-
+    
 }
 
 void Application::run() {
@@ -27,7 +28,9 @@ void Application::run() {
         // Do camera movement
 
         // Do rendering
+        m_renderer.drawFrame();
 
         m_window.endFrame();
     }
+    m_context.getDevice().waitIdle();
 }
