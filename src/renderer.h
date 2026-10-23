@@ -44,6 +44,10 @@ private:
 
     void createTrianglePipeline();
     void createAnimPipeline();
+    void createGroundPipeline();
+
+    // Pipeline helpers
+    vk::raii::Pipeline createMeshPipeline(const std::vector<vk::PipelineShaderStageCreateInfo>& stages, vk::PipelineLayout layout);
 
     void createDepthImage();
 
@@ -51,10 +55,11 @@ private:
     Window& m_window;
     Swapchain m_swapchain;
     Image m_depthImage;
-    vk::raii::PipelineLayout m_trianglePipelineLayout{nullptr};
+    vk::raii::PipelineLayout m_meshPipelineLayout{nullptr};
     vk::raii::Pipeline m_trianglePipeline{nullptr}; 
     vk::raii::PipelineLayout m_animPipelineLayout{nullptr};
     vk::raii::Pipeline m_animPipeline{nullptr};
+    vk::raii::Pipeline m_groundPipeline{nullptr};
     vk::raii::CommandPool m_commandPool{nullptr};
     std::array<FrameData, 2> m_frames;
     std::vector<vk::raii::Semaphore> m_renderFinishedSemaphores;
