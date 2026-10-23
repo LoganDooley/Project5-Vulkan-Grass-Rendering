@@ -13,12 +13,14 @@ Application::Application() :
 }
 
 void Application::run() {
-    m_lastFrameTime = std::chrono::steady_clock::now();
+    m_firstFrameTime = std::chrono::steady_clock::now();
+    m_lastFrameTime = m_firstFrameTime;
     while (!m_window.shouldClose()) {
         m_window.pollEvents();
         std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
         float dt = std::chrono::duration<float>(now - m_lastFrameTime).count();
         dt = std::min(dt, 0.1f);
+        float totalTime = std::chrono::duration<float>(now - m_firstFrameTime).count();
         m_lastFrameTime = now;
 
         if(m_window.isKeyDown(GLFW_KEY_ESCAPE)) {
@@ -28,7 +30,7 @@ void Application::run() {
         // Do camera movement
 
         // Do rendering
-        m_renderer.drawFrame();
+        m_renderer.drawFrame(dt, totalTime);
 
         m_window.endFrame();
     }

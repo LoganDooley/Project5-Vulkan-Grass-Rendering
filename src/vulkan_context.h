@@ -59,6 +59,7 @@ public:
     const vk::raii::SurfaceKHR& getSurface() const { return m_surface; }
     const vk::raii::Queue& getQueue() const { return m_queue; }
     uint32_t getQueueFamilyIndex() const { return m_queueFamilyIndex; }
+    VmaAllocator getAllocator() const { return m_allocator.handle; }
 
 private:
     void createInstance(const Window& window);
@@ -67,7 +68,6 @@ private:
     void pickPhysicalDevice();
     void createDevice();
     void createAllocator();
-    VmaAllocator getAllocator() const { return m_allocator.handle; }
 
     vk::raii::Context m_context;
     vk::raii::Instance m_instance{nullptr};

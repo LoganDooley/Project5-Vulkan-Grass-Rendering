@@ -4,6 +4,8 @@
 #include "window.h"
 #include "shader_utils.h"
 
+#include <glm/gtc/matrix_transform.hpp>
+
 #include <array>
 #include <stdexcept>
 #include <limits>
@@ -37,6 +39,11 @@ Renderer::Renderer(const VulkanContext &context, Window &window) :
             .flags = vk::FenceCreateFlagBits::eSignaled
         };
         m_frames[i].inFlightFence = vk::raii::Fence(context.getDevice(), fenceCreateInfo);
+        m_frames[i].cameraBuffer = Buffer(m_context.getAllocator(), 
+            m_context.getDevice(), 
+            sizeof(CameraData),
+            vk::BufferUsageFlagBits::eStorageBuffer,
+            true);
     }
 
     // Create render finished semaphores
@@ -50,7 +57,7 @@ Renderer::Renderer(const VulkanContext &context, Window &window) :
     createTrianglePipeline();
 }
 
-void Renderer::drawFrame()
+void Renderer::drawFrame(float dt, float totalTime)
 {
     FrameData& frameData = m_frames[m_frameIndex];
 
@@ -58,6 +65,20 @@ void Renderer::drawFrame()
     if(m_context.getDevice().waitForFences(*frameData.inFlightFence, vk::True, std::numeric_limits<uint64_t>::max()) != vk::Result::eSuccess){
         throw std::runtime_error("Wait for in flight fence failed!");
     }
+
+    // Update camera data
+    vk::Extent2D extent = m_swapchain.getExtent();
+    float aspect = static_cast<float>(extent.width) / static_cast<float>(extent.height);
+
+    CameraData camera{};
+    glm::vec3 eye(3.0f * std::sin(totalTime), 0.0f, 3.0f * std::cos(totalTime));
+    camera.view = glm::lookAt(eye, glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    camera.proj = glm::perspective(glm::radians(60.0f), aspect, 0.1f, 100.f);
+    camera.proj[1][1] *= -1.0f;
+    camera.viewProj = camera.proj * camera.view;
+    camera.position = glm::vec4(eye, 1.0f);
+
+    frameData.cameraBuffer.write(&camera, sizeof(camera));
 
     // Acquire swapchain image
     uint32_t imageIndex;
@@ -107,7 +128,7 @@ void Renderer::drawFrame()
 
     vk::RenderingInfo renderingInfo = {
         .renderArea = {
-            .extent = m_swapchain.getExtent()
+            .extent = extent
         },
         .layerCount = 1,
         .colorAttachmentCount = 1,
@@ -117,8 +138,12 @@ void Renderer::drawFrame()
     commandBuffer.beginRendering(renderingInfo);
 
     // Run triangle pipeline
-    vk::Extent2D extent = m_swapchain.getExtent();
     commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *m_trianglePipeline);
+    // - Add push constants
+    PushConstants pc = {
+        .camera = frameData.cameraBuffer.getDeviceAddress()
+    };
+    commandBuffer.pushConstants<PushConstants>(*m_trianglePipelineLayout, m_pcStages, 0, pc);
     commandBuffer.setViewport(0, 
         vk::Viewport {
             .x = 0.0f,
@@ -255,7 +280,18 @@ void Renderer::createTrianglePipeline()
     };
     vk::raii::ShaderModule shaderModule(m_context.getDevice(), moduleInfo);
 
-    m_trianglePipelineLayout = vk::raii::PipelineLayout(m_context.getDevice(), vk::PipelineLayoutCreateInfo{});
+    // Create layout
+    m_pcStages = vk::ShaderStageFlagBits::eTaskEXT | vk::ShaderStageFlagBits::eMeshEXT | vk::ShaderStageFlagBits::eFragment;
+    vk::PushConstantRange pcRange = {
+        .stageFlags = m_pcStages,
+        .offset = 0,
+        .size = sizeof(PushConstants)
+    };
+    vk::PipelineLayoutCreateInfo pipelineLayoutCreateInfo = {
+        .pushConstantRangeCount = 1,
+        .pPushConstantRanges = &pcRange
+    };
+    m_trianglePipelineLayout = vk::raii::PipelineLayout(m_context.getDevice(), pipelineLayoutCreateInfo);
 
     std::array<vk::PipelineShaderStageCreateInfo, 3> stages = {
         {

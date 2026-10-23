@@ -4,6 +4,19 @@ struct Payload {
 
 groupshared Payload payload;
 
+struct CameraData {
+    float4x4 view;
+    float4x4 proj;
+    float4x4 viewProj;
+    float4 position;
+};
+
+struct PushConstants {
+    CameraData *camera;
+}
+
+[[vk::push_constant]] PushConstants pc;
+
 [shader("amplification")] // task shader
 [numthreads(1, 1, 1)]
 void taskMain()
@@ -27,9 +40,9 @@ void meshMain(uint threadId: SV_GroupThreadID,
 {
     SetMeshOutputCounts(3, 1);
     let refPos : float2[3] = {
-        float2(0, -0.5),
-        float2(0.5, 0.5),
-        float2(-0.5, 0.5)
+        float2(0, 0.5),
+        float2(0.5, -0.5),
+        float2(-0.5, -0.5)
     };
 
     let refColor : float3[3] = {
@@ -38,10 +51,8 @@ void meshMain(uint threadId: SV_GroupThreadID,
         float3(0.0, 0.0, 1.0)
     };
 
-    verts[threadId] = {
-        float4(refPos[threadId], 0.0, 1.0),
-        refColor[threadId]
-    };
+    verts[threadId].position = mul(pc.camera->viewProj, float4(refPos[threadId], 0.0, 1.0));
+    verts[threadId].color = refColor[threadId];
 
     if (threadId == 0) {
         tris[0] = uint3(0, 1, 2);

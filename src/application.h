@@ -22,5 +22,6 @@ private:
     VulkanContext m_context;
     Renderer m_renderer;
 
+    std::chrono::steady_clock::time_point m_firstFrameTime;
     std::chrono::steady_clock::time_point m_lastFrameTime;
 };

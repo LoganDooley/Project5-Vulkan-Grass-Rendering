@@ -3,6 +3,8 @@
 #include <vulkan/vulkan_raii.hpp>
 
 #include "swapchain.h"
+#include "buffer.h"
+#include "gpu_types.h"
 
 #include <array>
 #include <vector>
@@ -14,6 +16,7 @@ struct FrameData {
     vk::raii::CommandBuffer commandBuffer{nullptr};
     vk::raii::Semaphore imageAvailableSemaphore{nullptr};
     vk::raii::Fence inFlightFence{nullptr};
+    Buffer cameraBuffer;
 };
 
 class Renderer {
@@ -25,7 +28,7 @@ public:
     Renderer(Renderer&&) = delete;
     Renderer& operator=(Renderer&&) = delete;
 
-    void drawFrame();
+    void drawFrame(float dt, float totalTime);
 
 private:
     static void transitionImage(const vk::raii::CommandBuffer& cmd,
@@ -47,4 +50,5 @@ private:
     std::array<FrameData, 2> m_frames;
     std::vector<vk::raii::Semaphore> m_renderFinishedSemaphores;
     uint32_t m_frameIndex = 0;
+    vk::ShaderStageFlags m_pcStages;
 };
