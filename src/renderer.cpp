@@ -3,8 +3,7 @@
 #include "vulkan_context.h"
 #include "window.h"
 #include "shader_utils.h"
-
-#include <glm/gtc/matrix_transform.hpp>
+#include "camera.h"
 
 #include <array>
 #include <stdexcept>
@@ -57,7 +56,7 @@ Renderer::Renderer(const VulkanContext &context, Window &window) :
     createTrianglePipeline();
 }
 
-void Renderer::drawFrame(float dt, float totalTime)
+void Renderer::drawFrame(const Camera& camera, float totalTime)
 {
     FrameData& frameData = m_frames[m_frameIndex];
 
@@ -70,15 +69,8 @@ void Renderer::drawFrame(float dt, float totalTime)
     vk::Extent2D extent = m_swapchain.getExtent();
     float aspect = static_cast<float>(extent.width) / static_cast<float>(extent.height);
 
-    CameraData camera{};
-    glm::vec3 eye(3.0f * std::sin(totalTime), 0.0f, 3.0f * std::cos(totalTime));
-    camera.view = glm::lookAt(eye, glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    camera.proj = glm::perspective(glm::radians(60.0f), aspect, 0.1f, 100.f);
-    camera.proj[1][1] *= -1.0f;
-    camera.viewProj = camera.proj * camera.view;
-    camera.position = glm::vec4(eye, 1.0f);
-
-    frameData.cameraBuffer.write(&camera, sizeof(camera));
+    CameraData cameraData = camera.getCameraData(aspect);
+    frameData.cameraBuffer.write(&cameraData, sizeof(cameraData));
 
     // Acquire swapchain image
     uint32_t imageIndex;

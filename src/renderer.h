@@ -11,6 +11,7 @@
 
 class VulkanContext;
 class Window;
+class Camera;
 
 struct FrameData {
     vk::raii::CommandBuffer commandBuffer{nullptr};
@@ -28,7 +29,7 @@ public:
     Renderer(Renderer&&) = delete;
     Renderer& operator=(Renderer&&) = delete;
 
-    void drawFrame(float dt, float totalTime);
+    void drawFrame(const Camera& camera, float totalTime);
 
 private:
     static void transitionImage(const vk::raii::CommandBuffer& cmd,

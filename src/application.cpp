@@ -7,7 +7,8 @@
 Application::Application() : 
     m_window(1280, 720, "Vulkan Grass"),
     m_context(m_window),
-    m_renderer(m_context, m_window)
+    m_renderer(m_context, m_window),
+    m_camera(glm::vec3(0.0f, 0.0f, 3.0f))
 {
     
 }
@@ -28,9 +29,32 @@ void Application::run() {
         }
 
         // Do camera movement
+        CameraInput input{};
+        if (m_window.isKeyDown(GLFW_KEY_W)) {
+            input.move.z += 1.0f;
+        }
+        if (m_window.isKeyDown(GLFW_KEY_S)){
+            input.move.z -= 1.0f;
+        } 
+        if (m_window.isKeyDown(GLFW_KEY_D)) {
+            input.move.x += 1.0f;
+        }
+        if (m_window.isKeyDown(GLFW_KEY_A)) {
+            input.move.x -= 1.0f;
+        }
+        if (m_window.isKeyDown(GLFW_KEY_SPACE)) {
+            input.move.y += 1.0f;
+        }
+        if (m_window.isKeyDown(GLFW_KEY_LEFT_SHIFT)) {
+            input.move.y -= 1.0f;
+        }
+        if (m_window.isMouseDown(GLFW_MOUSE_BUTTON_RIGHT)) {
+            input.look = glm::vec2(m_window.getMouseDelta());
+        }
+        m_camera.update(dt, input);
 
         // Do rendering
-        m_renderer.drawFrame(dt, totalTime);
+        m_renderer.drawFrame(m_camera, totalTime);
 
         m_window.endFrame();
     }
