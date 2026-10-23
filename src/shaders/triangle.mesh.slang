@@ -1,34 +1,7 @@
-struct Payload {
-    uint dummy;
-};
-
-groupshared Payload payload;
-
-struct CameraData {
-    float4x4 view;
-    float4x4 proj;
-    float4x4 viewProj;
-    float4 position;
-};
-
-struct PushConstants {
-    CameraData *camera;
-}
+import common;
+import triangle_shared;
 
 [[vk::push_constant]] PushConstants pc;
-
-[shader("amplification")] // task shader
-[numthreads(1, 1, 1)]
-void taskMain()
-{
-    payload.dummy = 0;
-    DispatchMesh(1, 1, 1, payload);
-}
-
-struct VertexOut {
-    float4 position : SV_Position;
-    float3 color;
-};
 
 [shader("mesh")]
 [outputtopology("triangle")]
@@ -51,15 +24,12 @@ void meshMain(uint threadId: SV_GroupThreadID,
         float3(0.0, 0.0, 1.0)
     };
 
-    verts[threadId].position = mul(pc.camera->viewProj, float4(refPos[threadId], 0.0, 1.0));
+    float3 offset = float3(1.0 * p.index, 0.0, -1.0 * p.index);
+
+    verts[threadId].position = mul(pc.camera->viewProj, float4(float3(refPos[threadId], 0.0) + offset, 1.0));
     verts[threadId].color = refColor[threadId];
 
     if (threadId == 0) {
         tris[0] = uint3(0, 1, 2);
     }
-}
-
-[shader("fragment")]
-float4 fragMain(VertexOut input) : SV_Target {
-    return float4(input.color, 1.0);
 }

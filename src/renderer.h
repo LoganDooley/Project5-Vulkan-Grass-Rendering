@@ -5,6 +5,7 @@
 #include "swapchain.h"
 #include "buffer.h"
 #include "gpu_types.h"
+#include "image.h"
 
 #include <array>
 #include <vector>
@@ -36,15 +37,19 @@ private:
         vk::Image image,
         vk::ImageLayout oldLayout, vk::ImageLayout newLayout,
         vk::PipelineStageFlags2 srcStage, vk::AccessFlags2 srcAccess,
-        vk::PipelineStageFlags2 dstStage, vk::AccessFlags2 dstAccess);
+        vk::PipelineStageFlags2 dstStage, vk::AccessFlags2 dstAccess,
+        vk::ImageAspectFlags aspect);
 
     void recreateSwapchain();
 
     void createTrianglePipeline();
 
+    void createDepthImage();
+
     const VulkanContext& m_context;
     Window& m_window;
     Swapchain m_swapchain;
+    Image m_depthImage;
     vk::raii::PipelineLayout m_trianglePipelineLayout{nullptr};
     vk::raii::Pipeline m_trianglePipeline{nullptr}; 
     vk::raii::CommandPool m_commandPool{nullptr};

@@ -1,4 +1,9 @@
 # Compiles Slang shaders to SPIR-V
+#
+#   add_slang_shaders(<target>
+#       SOURCES      <files.slang...>     # each must contain exactly ONE entry point
+#       INCLUDE_DIRS <dirs...>)           # searched by `import`
+# Code shared between stages must go in a module under INCLUDE_DIRS and is `import`ed.
 
 find_program(SLANGC_EXECUTABLE slangc
     HINTS "$ENV{VULKAN_SDK}/Bin" "$ENV{VULKAN_SDK}/bin"
@@ -14,6 +19,8 @@ function(add_slang_shaders target)
     else()
         set(out_dir "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/shaders")
     endif()
+    set(dep_dir "${CMAKE_CURRENT_BINARY_DIR}/slang/$<CONFIG>")
+
     set(include_flags "")
     foreach(dir IN LISTS ARG_INCLUDE_DIRS)
         list(APPEND include_flags -I "${dir}")
@@ -22,13 +29,14 @@ function(add_slang_shaders target)
     set(spv_files "")
     foreach(src IN LISTS ARG_SOURCES)
         get_filename_component(src_abs "${src}" ABSOLUTE)
-        get_filename_component(name "${src}" NAME_WE)
+        # NAME_WLE strips only the last extension, so "triangle.task.slang" -> "triangle.task"
+        get_filename_component(name "${src}" NAME_WLE)
         set(spv "${out_dir}/${name}.spv")
-        set(dep "${CMAKE_CURRENT_BINARY_DIR}/slang/$<CONFIG>/${name}.d")
+        set(dep "${dep_dir}/${name}.d")
 
         add_custom_command(
             OUTPUT "${spv}"
-            COMMAND "${CMAKE_COMMAND}" -E make_directory "${out_dir}" "${CMAKE_CURRENT_BINARY_DIR}/slang/$<CONFIG>"
+            COMMAND "${CMAKE_COMMAND}" -E make_directory "${out_dir}" "${dep_dir}"
             COMMAND "${SLANGC_EXECUTABLE}" "${src_abs}"
                 -target spirv
                 -profile spirv_1_6

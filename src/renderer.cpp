@@ -52,6 +52,9 @@ Renderer::Renderer(const VulkanContext &context, Window &window) :
         m_renderFinishedSemaphores.emplace_back(context.getDevice(), semaphoreCreateInfo);
     }
 
+    // Create depth image
+    createDepthImage();
+
     // Create triangle pipeline
     createTrianglePipeline();
 }
@@ -101,7 +104,16 @@ void Renderer::drawFrame(const Camera& camera, float totalTime)
     transitionImage(commandBuffer, image, 
         vk::ImageLayout::eUndefined, vk::ImageLayout::eColorAttachmentOptimal,
         vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::AccessFlagBits2::eNone,
-    vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::AccessFlagBits2::eColorAttachmentWrite);
+        vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::AccessFlagBits2::eColorAttachmentWrite,
+        vk::ImageAspectFlagBits::eColor);
+
+    transitionImage(commandBuffer, m_depthImage.getImage(),
+        vk::ImageLayout::eUndefined, vk::ImageLayout::eDepthAttachmentOptimal,
+        vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests,
+        vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
+        vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests,
+        vk::AccessFlagBits2::eDepthStencilAttachmentRead | vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
+        vk::ImageAspectFlagBits::eDepth);
 
     // - Clear image
     vk::RenderingAttachmentInfo colorAttachment = {
@@ -118,13 +130,27 @@ void Renderer::drawFrame(const Camera& camera, float totalTime)
         }
     };
 
+    vk::RenderingAttachmentInfo depthAttachment = {
+        .imageView = m_depthImage.getImageView(),
+        .imageLayout = vk::ImageLayout::eDepthAttachmentOptimal,
+        .loadOp = vk::AttachmentLoadOp::eClear,
+        .storeOp = vk::AttachmentStoreOp::eDontCare,
+        .clearValue = { 
+            .depthStencil = { 
+                .depth = 0.0f, 
+                .stencil = 0 
+            } 
+        },
+    };
+
     vk::RenderingInfo renderingInfo = {
         .renderArea = {
             .extent = extent
         },
         .layerCount = 1,
         .colorAttachmentCount = 1,
-        .pColorAttachments = &colorAttachment
+        .pColorAttachments = &colorAttachment,
+        .pDepthAttachment = &depthAttachment,
     };
 
     commandBuffer.beginRendering(renderingInfo);
@@ -152,7 +178,7 @@ void Renderer::drawFrame(const Camera& camera, float totalTime)
             .extent = extent
         }
     );
-    commandBuffer.drawMeshTasksEXT(1, 1, 1);
+    commandBuffer.drawMeshTasksEXT(2, 1, 1);
 
     commandBuffer.endRendering();
 
@@ -160,7 +186,8 @@ void Renderer::drawFrame(const Camera& camera, float totalTime)
     transitionImage(commandBuffer, image,
         vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::ePresentSrcKHR,
         vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::AccessFlagBits2::eColorAttachmentWrite,
-        vk::PipelineStageFlagBits2::eBottomOfPipe, vk::AccessFlagBits2::eNone);
+        vk::PipelineStageFlagBits2::eBottomOfPipe, vk::AccessFlagBits2::eNone,
+        vk::ImageAspectFlagBits::eColor);
 
     commandBuffer.end();
 
@@ -224,7 +251,8 @@ void Renderer::drawFrame(const Camera& camera, float totalTime)
 void Renderer::transitionImage(const vk::raii::CommandBuffer &cmd, vk::Image image, 
     vk::ImageLayout oldLayout, vk::ImageLayout newLayout, 
     vk::PipelineStageFlags2 srcStage, vk::AccessFlags2 srcAccess, 
-    vk::PipelineStageFlags2 dstStage, vk::AccessFlags2 dstAccess)
+    vk::PipelineStageFlags2 dstStage, vk::AccessFlags2 dstAccess,
+    vk::ImageAspectFlags aspect)
 {
     vk::ImageMemoryBarrier2 barrier = {
         .srcStageMask = srcStage,
@@ -235,7 +263,7 @@ void Renderer::transitionImage(const vk::raii::CommandBuffer &cmd, vk::Image ima
         .newLayout = newLayout,
         .image = image,
         .subresourceRange = {
-            .aspectMask = vk::ImageAspectFlagBits::eColor, 
+            .aspectMask = aspect, 
             .levelCount = 1, 
             .layerCount = 1 
         }
@@ -260,18 +288,20 @@ void Renderer::recreateSwapchain()
         m_renderFinishedSemaphores.emplace_back(m_context.getDevice(), vk::SemaphoreCreateInfo{});
     }
 
+    createDepthImage();
+
     m_window.clearResized();
 }
 
 void Renderer::createTrianglePipeline()
 {
-    std::vector<uint32_t> code = ShaderLoader::readSpirv("shaders/triangle.spv");
-    vk::ShaderModuleCreateInfo moduleInfo = {
-        .codeSize = code.size() * sizeof(uint32_t),
-        .pCode = code.data()
-    };
-    vk::raii::ShaderModule shaderModule(m_context.getDevice(), moduleInfo);
-
+    const vk::raii::Device& device = m_context.getDevice();
+    
+    // Create shader modules
+    vk::raii::ShaderModule taskModule = ShaderUtils::createShaderModule(device, "shaders/triangle.task.spv");
+    vk::raii::ShaderModule meshModule = ShaderUtils::createShaderModule(device, "shaders/triangle.mesh.spv");
+    vk::raii::ShaderModule fragModule = ShaderUtils::createShaderModule(device, "shaders/triangle.frag.spv");
+    
     // Create layout
     m_pcStages = vk::ShaderStageFlagBits::eTaskEXT | vk::ShaderStageFlagBits::eMeshEXT | vk::ShaderStageFlagBits::eFragment;
     vk::PushConstantRange pcRange = {
@@ -289,17 +319,17 @@ void Renderer::createTrianglePipeline()
         {
             {
                 .stage = vk::ShaderStageFlagBits::eTaskEXT,
-                .module = *shaderModule,
+                .module = *taskModule,
                 .pName = "taskMain"
             },
             {
                 .stage = vk::ShaderStageFlagBits::eMeshEXT,
-                .module = *shaderModule,
+                .module = *meshModule,
                 .pName = "meshMain"
             },
             {
                 .stage = vk::ShaderStageFlagBits::eFragment,
-                .module = *shaderModule,
+                .module = *fragModule,
                 .pName = "fragMain"
             }
         },
@@ -338,6 +368,13 @@ void Renderer::createTrianglePipeline()
         .pAttachments = &blendAttachment 
     };
 
+    // Depth state
+    vk::PipelineDepthStencilStateCreateInfo depthStencilState = {
+        .depthTestEnable = vk::True,
+        .depthWriteEnable = vk::True,
+        .depthCompareOp = vk::CompareOp::eGreater
+    };
+
     // Dynamic state
     std::array<vk::DynamicState, 2> dynamicStates = {
         vk::DynamicState::eViewport,
@@ -353,7 +390,8 @@ void Renderer::createTrianglePipeline()
     vk::Format colorFormat = m_swapchain.getFormat();
     vk::PipelineRenderingCreateInfo renderingCreateInfo = {
         .colorAttachmentCount = 1,
-        .pColorAttachmentFormats = &colorFormat
+        .pColorAttachmentFormats = &colorFormat,
+        .depthAttachmentFormat = m_depthImage.getFormat()
     };
 
     // Create the pipeline
@@ -364,10 +402,21 @@ void Renderer::createTrianglePipeline()
         .pViewportState = &viewportState,
         .pRasterizationState = &rasterizationState,
         .pMultisampleState = &multisampleState,
+        .pDepthStencilState = &depthStencilState,
         .pColorBlendState = &colorBlendState,
         .pDynamicState = &dynamicState,
         .layout = *m_trianglePipelineLayout
     };
 
     m_trianglePipeline = vk::raii::Pipeline(m_context.getDevice(), nullptr, pipelineCreateInfo);
+}
+
+void Renderer::createDepthImage()
+{
+    m_depthImage = Image(m_context.getAllocator(),
+        m_context.getDevice(),
+        m_swapchain.getExtent(),
+        vk::Format::eD32Sfloat,
+        vk::ImageUsageFlagBits::eDepthStencilAttachment,
+        vk::ImageAspectFlagBits::eDepth);
 }
