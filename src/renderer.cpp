@@ -197,19 +197,7 @@ void Renderer::drawFrame(const Camera& camera, float totalTime)
 
     commandBuffer.beginRendering(renderingInfo);
 
-    PushConstants pc = {
-        .camera = frameData.cameraBuffer.getDeviceAddress(),
-        .positions = m_positionsBuffer.getDeviceAddress()
-    };
-
-    // Run ground pipeline
-    commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *m_groundPipeline);
-    commandBuffer.pushConstants<PushConstants>(*m_meshPipelineLayout, m_pcStages, 0, pc);
-    commandBuffer.drawMeshTasksEXT(1, 1, 1);
-
-    // Run triangle pipeline
-    commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *m_trianglePipeline);
-    commandBuffer.pushConstants<PushConstants>(*m_meshPipelineLayout, m_pcStages, 0, pc);
+    // Set viewport and scissor
     commandBuffer.setViewport(0, 
         vk::Viewport {
             .x = 0.0f,
@@ -226,6 +214,21 @@ void Renderer::drawFrame(const Camera& camera, float totalTime)
             .extent = extent
         }
     );
+
+    // Create push constants
+    PushConstants pc = {
+        .camera = frameData.cameraBuffer.getDeviceAddress(),
+        .positions = m_positionsBuffer.getDeviceAddress()
+    };
+
+    // Run ground pipeline
+    commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *m_groundPipeline);
+    commandBuffer.pushConstants<PushConstants>(*m_meshPipelineLayout, m_pcStages, 0, pc);
+    commandBuffer.drawMeshTasksEXT(1, 1, 1);
+
+    // Run triangle pipeline
+    commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *m_trianglePipeline);
+    commandBuffer.pushConstants<PushConstants>(*m_meshPipelineLayout, m_pcStages, 0, pc);
     commandBuffer.drawMeshTasksEXT(2, 1, 1);
 
     commandBuffer.endRendering();
