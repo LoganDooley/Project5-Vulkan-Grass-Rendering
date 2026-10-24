@@ -7,6 +7,7 @@
 #include "gpu_types.h"
 #include "image.h"
 #include "grass.h"
+#include "imgui_layer.h"
 
 #include <array>
 #include <vector>
@@ -33,6 +34,8 @@ public:
 
     void drawFrame(const Camera& camera, float dt, float totalTime);
 
+    ImGuiLayer& getImGuiLayer() { return m_imGuiLayer; }
+
 private:
     static void transitionImage(const vk::raii::CommandBuffer& cmd,
         vk::Image image,
@@ -58,6 +61,7 @@ private:
     Window& m_window;
     Swapchain m_swapchain;
     Image m_depthImage;
+    ImGuiLayer m_imGuiLayer;
     vk::raii::PipelineLayout m_meshPipelineLayout{nullptr};
     vk::raii::Pipeline m_trianglePipeline{nullptr}; 
     vk::raii::PipelineLayout m_animPipelineLayout{nullptr};

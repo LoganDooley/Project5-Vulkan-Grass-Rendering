@@ -61,6 +61,7 @@ public:
     const vk::raii::Queue& getQueue() const { return m_queue; }
     uint32_t getQueueFamilyIndex() const { return m_queueFamilyIndex; }
     VmaAllocator getAllocator() const { return m_allocator.handle; }
+    PFN_vkGetInstanceProcAddr getInstanceProcAddr() const { return m_context.getDispatcher()->vkGetInstanceProcAddr; }
 
     // Helper to record, submit, and wait
     void submitImmediate(const std::function<void(const vk::raii::CommandBuffer&)>& record) const;

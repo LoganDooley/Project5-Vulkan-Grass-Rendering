@@ -1,6 +1,7 @@
 #include "application.h"
 
 #include <GLFW/glfw3.h>
+#include <imgui.h>
 
 #include <algorithm>
 
@@ -33,29 +34,41 @@ void Application::run() {
 
         // Do camera movement
         CameraInput input{};
-        if (m_window.isKeyDown(GLFW_KEY_W)) {
-            input.move.z += 1.0f;
+
+        ImGuiIO& io = ImGui::GetIO();
+        if(!io.WantCaptureMouse) {
+            if (m_window.isMouseDown(GLFW_MOUSE_BUTTON_RIGHT)) {
+                input.look = glm::vec2(m_window.getMouseDelta());
+            }
         }
-        if (m_window.isKeyDown(GLFW_KEY_S)){
-            input.move.z -= 1.0f;
-        } 
-        if (m_window.isKeyDown(GLFW_KEY_D)) {
-            input.move.x += 1.0f;
-        }
-        if (m_window.isKeyDown(GLFW_KEY_A)) {
-            input.move.x -= 1.0f;
-        }
-        if (m_window.isKeyDown(GLFW_KEY_SPACE)) {
-            input.move.y += 1.0f;
-        }
-        if (m_window.isKeyDown(GLFW_KEY_LEFT_SHIFT)) {
-            input.move.y -= 1.0f;
-        }
-        if (m_window.isMouseDown(GLFW_MOUSE_BUTTON_RIGHT)) {
-            input.look = glm::vec2(m_window.getMouseDelta());
+        if(!io.WantCaptureKeyboard) {
+            if (m_window.isKeyDown(GLFW_KEY_W)) {
+                input.move.z += 1.0f;
+            }
+            if (m_window.isKeyDown(GLFW_KEY_S)){
+                input.move.z -= 1.0f;
+            } 
+            if (m_window.isKeyDown(GLFW_KEY_D)) {
+                input.move.x += 1.0f;
+            }
+            if (m_window.isKeyDown(GLFW_KEY_A)) {
+                input.move.x -= 1.0f;
+            }
+            if (m_window.isKeyDown(GLFW_KEY_SPACE)) {
+                input.move.y += 1.0f;
+            }
+            if (m_window.isKeyDown(GLFW_KEY_LEFT_SHIFT)) {
+                input.move.y -= 1.0f;
+            }
         }
         m_camera.update(dt, input);
 
+        // Begin imgui
+        ImGuiLayer& imGuiLayer = m_renderer.getImGuiLayer();
+        imGuiLayer.beginFrame();
+        ImGui::ShowDemoWindow();
+        imGuiLayer.endFrame();
+        
         // Do rendering
         m_renderer.drawFrame(m_camera, m_smoothDt, totalTime);
 

@@ -20,6 +20,11 @@ Renderer::Renderer(const VulkanContext &context, Window &window) :
         vk::Format::eD32Sfloat,
         vk::ImageUsageFlagBits::eDepthStencilAttachment,
         vk::ImageAspectFlagBits::eDepth),
+    m_imGuiLayer(m_context, 
+        m_window.getHandle(), 
+        m_swapchain.getImageCount(), 
+        m_swapchain.getFormat(), 
+        m_depthImage.getFormat()),
     m_grass(m_context, 1u << 20, 100.0f, m_swapchain.getFormat(), m_depthImage.getFormat())
 {
     // Create command pool
@@ -246,6 +251,9 @@ void Renderer::drawFrame(const Camera& camera, float dt, float totalTime)
     commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *m_trianglePipeline);
     commandBuffer.pushConstants<PushConstants>(*m_meshPipelineLayout, m_pcStages, 0, pc);
     commandBuffer.drawMeshTasksEXT(2, 1, 1);
+
+    // Draw imgui
+    m_imGuiLayer.record(commandBuffer);
 
     commandBuffer.endRendering();
 
