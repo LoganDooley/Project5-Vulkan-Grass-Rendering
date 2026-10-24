@@ -32,6 +32,48 @@ VulkanContext::VulkanContext(const Window &window)
     createAllocator();
 }
 
+void VulkanContext::submitImmediate(const std::function<void(const vk::raii::CommandBuffer &)> &record) const
+{
+    // Create a temp command pool
+    vk::CommandPoolCreateInfo commandPoolCreateInfo = {
+        .flags = vk::CommandPoolCreateFlagBits::eTransient,
+        .queueFamilyIndex = m_queueFamilyIndex
+    };
+    vk::raii::CommandPool commandPool(m_device, commandPoolCreateInfo);
+
+    // Allocate a command buffer
+    vk::CommandBufferAllocateInfo commandBufferAllocInfo = {
+        .commandPool = *commandPool,
+        .level = vk::CommandBufferLevel::ePrimary,
+        .commandBufferCount = 1
+    };
+    vk::raii::CommandBuffers buffers(m_device, commandBufferAllocInfo);
+    const vk::raii::CommandBuffer& cmd = buffers[0];
+
+    // Record
+    vk::CommandBufferBeginInfo beginInfo = {
+        .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit
+    };
+
+    cmd.begin(beginInfo);
+    record(cmd);
+    cmd.end();
+
+    // Submit
+    vk::CommandBufferSubmitInfo cmdBufferSubmitInfo = {
+        .commandBuffer = *cmd
+    };
+
+    vk::SubmitInfo2 submitInfo = {
+        .commandBufferInfoCount = 1,
+        .pCommandBufferInfos = &cmdBufferSubmitInfo
+    };
+    m_queue.submit2(submitInfo);
+
+    // Wait
+    m_queue.waitIdle();
+}
+
 void VulkanContext::createInstance(const Window &window)
 {
     vk::ApplicationInfo appInfo = {

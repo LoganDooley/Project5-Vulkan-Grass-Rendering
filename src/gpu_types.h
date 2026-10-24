@@ -20,3 +20,32 @@ struct AnimPushConstants {
     vk::DeviceAddress positions;
     float time;
 };
+
+struct Blade {
+    glm::vec4 v0;
+    glm::vec4 v1;
+    glm::vec4 v2;
+    glm::vec4 up;
+};
+static_assert(sizeof(Blade) == 64, "Blade must match the Slang struct");
+
+struct GrassInitPushConstants {
+    vk::DeviceAddress blades;
+    uint32_t bladeCount;
+    uint32_t gridWidth;
+    float areaSize;
+    uint32_t seed;
+};
+
+struct GrassDrawPushConstants {
+    vk::DeviceAddress camera;
+    vk::DeviceAddress blades;
+    uint32_t bladeCount;
+};
+
+struct GrassSimPushConstants {
+    vk::DeviceAddress blades;
+    uint32_t bladeCount;
+    float deltaTime;
+    float totalTime;
+};

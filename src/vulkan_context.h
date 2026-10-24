@@ -5,6 +5,7 @@
 
 #include <stdexcept>
 #include <utility>
+#include <functional>
 
 class Window;
 
@@ -60,6 +61,9 @@ public:
     const vk::raii::Queue& getQueue() const { return m_queue; }
     uint32_t getQueueFamilyIndex() const { return m_queueFamilyIndex; }
     VmaAllocator getAllocator() const { return m_allocator.handle; }
+
+    // Helper to record, submit, and wait
+    void submitImmediate(const std::function<void(const vk::raii::CommandBuffer&)>& record) const;
 
 private:
     void createInstance(const Window& window);

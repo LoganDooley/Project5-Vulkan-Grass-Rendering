@@ -13,7 +13,14 @@
 Renderer::Renderer(const VulkanContext &context, Window &window) :
     m_context(context),
     m_window(window),
-    m_swapchain(context, window, vk::PresentModeKHR::eFifo)
+    m_swapchain(context, window, vk::PresentModeKHR::eFifo),
+    m_depthImage(m_context.getAllocator(),
+        m_context.getDevice(),
+        m_swapchain.getExtent(),
+        vk::Format::eD32Sfloat,
+        vk::ImageUsageFlagBits::eDepthStencilAttachment,
+        vk::ImageAspectFlagBits::eDepth),
+    m_grass(m_context, 1u << 18, 50.0f, m_swapchain.getFormat(), m_depthImage.getFormat())
 {
     // Create command pool
     vk::CommandPoolCreateInfo commandPoolCreateInfo = {
@@ -53,9 +60,6 @@ Renderer::Renderer(const VulkanContext &context, Window &window) :
         m_renderFinishedSemaphores.emplace_back(context.getDevice(), semaphoreCreateInfo);
     }
 
-    // Create depth image
-    createDepthImage();
-
     m_positionsBuffer = Buffer(m_context.getAllocator(), m_context.getDevice(), 3 * sizeof(glm::vec4), vk::BufferUsageFlagBits::eStorageBuffer, false);
 
     // Create pipeline layouts
@@ -66,9 +70,14 @@ Renderer::Renderer(const VulkanContext &context, Window &window) :
     createTrianglePipeline();
     createGroundPipeline();
     createAnimPipeline();
+
+    // Perform grass init immediately
+    m_context.submitImmediate([&](const vk::raii::CommandBuffer& cmd) {
+        m_grass.recordInit(cmd);
+    });
 }
 
-void Renderer::drawFrame(const Camera& camera, float totalTime)
+void Renderer::drawFrame(const Camera& camera, float dt, float totalTime)
 {
     FrameData& frameData = m_frames[m_frameIndex];
 
@@ -142,6 +151,9 @@ void Renderer::drawFrame(const Camera& camera, float totalTime)
         .memoryBarrierCount = 1, 
         .pMemoryBarriers = &writeBeforeRead 
     });
+
+    // - Run grass sim
+    m_grass.simulate(commandBuffer, dt, totalTime);
 
     // - Prepare image to be cleared
     transitionImage(commandBuffer, image, 
@@ -226,6 +238,9 @@ void Renderer::drawFrame(const Camera& camera, float totalTime)
     commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *m_groundPipeline);
     commandBuffer.pushConstants<PushConstants>(*m_meshPipelineLayout, m_pcStages, 0, pc);
     commandBuffer.drawMeshTasksEXT(1, 1, 1);
+
+    // Run grass pipeline
+    m_grass.draw(commandBuffer, frameData.cameraBuffer.getDeviceAddress());
 
     // Run triangle pipeline
     commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *m_trianglePipeline);

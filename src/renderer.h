@@ -6,6 +6,7 @@
 #include "buffer.h"
 #include "gpu_types.h"
 #include "image.h"
+#include "grass.h"
 
 #include <array>
 #include <vector>
@@ -30,7 +31,7 @@ public:
     Renderer(Renderer&&) = delete;
     Renderer& operator=(Renderer&&) = delete;
 
-    void drawFrame(const Camera& camera, float totalTime);
+    void drawFrame(const Camera& camera, float dt, float totalTime);
 
 private:
     static void transitionImage(const vk::raii::CommandBuffer& cmd,
@@ -68,4 +69,5 @@ private:
     uint32_t m_frameIndex = 0;
     vk::ShaderStageFlags m_pcStages;
     Buffer m_positionsBuffer;
+    Grass m_grass;
 };

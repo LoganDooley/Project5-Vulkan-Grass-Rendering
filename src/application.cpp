@@ -21,6 +21,9 @@ void Application::run() {
         std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
         float dt = std::chrono::duration<float>(now - m_lastFrameTime).count();
         dt = std::min(dt, 0.1f);
+        // With eFifo at 240 fps, when the simulation is fast, the frame times alternate between fast and slow.
+        // Adding a smoothed Dt to try evening it out for simulation puposes
+        m_smoothDt = m_smoothDt * 0.9 + dt * 0.1f;
         float totalTime = std::chrono::duration<float>(now - m_firstFrameTime).count();
         m_lastFrameTime = now;
 
@@ -54,7 +57,7 @@ void Application::run() {
         m_camera.update(dt, input);
 
         // Do rendering
-        m_renderer.drawFrame(m_camera, totalTime);
+        m_renderer.drawFrame(m_camera, m_smoothDt, totalTime);
 
         m_window.endFrame();
     }
