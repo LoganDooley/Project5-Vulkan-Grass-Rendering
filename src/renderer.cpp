@@ -20,7 +20,7 @@ Renderer::Renderer(const VulkanContext &context, Window &window) :
         vk::Format::eD32Sfloat,
         vk::ImageUsageFlagBits::eDepthStencilAttachment,
         vk::ImageAspectFlagBits::eDepth),
-    m_grass(m_context, 1u << 18, 50.0f, m_swapchain.getFormat(), m_depthImage.getFormat())
+    m_grass(m_context, 1u << 20, 100.0f, m_swapchain.getFormat(), m_depthImage.getFormat())
 {
     // Create command pool
     vk::CommandPoolCreateInfo commandPoolCreateInfo = {
