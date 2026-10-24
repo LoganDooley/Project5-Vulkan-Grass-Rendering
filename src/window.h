@@ -18,6 +18,8 @@ public:
     Window(Window&& other) noexcept;
     Window& operator=(Window&& other) noexcept;
 
+    GLFWwindow* getHandle() const { return m_glfwWindow; }
+
     bool shouldClose() const;
     void pollEvents();
 

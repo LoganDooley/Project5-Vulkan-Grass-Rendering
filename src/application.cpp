@@ -23,7 +23,7 @@ void Application::run() {
         dt = std::min(dt, 0.1f);
         // With eFifo at 240 fps, when the simulation is fast, the frame times alternate between fast and slow.
         // Adding a smoothed Dt to try evening it out for simulation puposes
-        m_smoothDt = m_smoothDt * 0.9 + dt * 0.1f;
+        m_smoothDt = m_smoothDt * 0.9f + dt * 0.1f;
         float totalTime = std::chrono::duration<float>(now - m_firstFrameTime).count();
         m_lastFrameTime = now;
 

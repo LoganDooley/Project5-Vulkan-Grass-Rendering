@@ -23,6 +23,19 @@ set(GLM_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLM_ENABLE_CXX_20 ON CACHE BOOL "" FORCE)
 add_subdirectory(external/glm)
 
+set(IMGUI_DIR "${CMAKE_SOURCE_DIR}/external/imgui")
+add_library(imgui STATIC
+    ${IMGUI_DIR}/imgui.cpp
+    ${IMGUI_DIR}/imgui_draw.cpp
+    ${IMGUI_DIR}/imgui_tables.cpp
+    ${IMGUI_DIR}/imgui_widgets.cpp
+    ${IMGUI_DIR}/imgui_demo.cpp
+    ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp
+    ${IMGUI_DIR}/backends/imgui_impl_vulkan.cpp)
+target_include_directories(imgui PUBLIC ${IMGUI_DIR} ${IMGUI_DIR}/backends)
+target_link_libraries(imgui PUBLIC glfw Vulkan::Headers)
+target_compile_definitions(imgui PUBLIC IMGUI_IMPL_VULKAN_NO_PROTOTYPES)
+
 set(SRC_DIR "${CMAKE_SOURCE_DIR}/src")
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "${SRC_DIR}/*.cpp" "${SRC_DIR}/*.h")
 
@@ -30,7 +43,7 @@ add_executable(vulkan_grass_rendering ${SOURCES})
 
 target_include_directories(vulkan_grass_rendering PRIVATE "${SRC_DIR}" "${CMAKE_SOURCE_DIR}/external/stb")
 
-target_link_libraries(vulkan_grass_rendering PRIVATE Vulkan::Headers glfw glm::glm)
+target_link_libraries(vulkan_grass_rendering PRIVATE Vulkan::Headers glfw glm::glm imgui)
 
 target_compile_definitions(vulkan_grass_rendering PRIVATE
     VULKAN_HPP_NO_CONSTRUCTORS
