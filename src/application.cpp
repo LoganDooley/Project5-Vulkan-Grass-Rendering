@@ -3,6 +3,8 @@
 #include <GLFW/glfw3.h>
 #include <imgui.h>
 
+#include "settings_ui.h"
+
 #include <algorithm>
 
 Application::Application() : 
@@ -27,6 +29,10 @@ void Application::run() {
         m_smoothDt = m_smoothDt * 0.9f + dt * 0.1f;
         float totalTime = std::chrono::duration<float>(now - m_firstFrameTime).count();
         m_lastFrameTime = now;
+
+        // Record cpu time
+        m_frameStats.frameHistory[m_frameStats.historyIndex] = dt * 1000.0f;
+        m_frameStats.historyIndex = (m_frameStats.historyIndex + 1) % m_frameStats.frameHistory.size();
 
         if(m_window.isKeyDown(GLFW_KEY_ESCAPE)) {
             m_window.requestClose();
@@ -66,9 +72,9 @@ void Application::run() {
         // Begin imgui
         ImGuiLayer& imGuiLayer = m_renderer.getImGuiLayer();
         imGuiLayer.beginFrame();
-        ImGui::ShowDemoWindow();
+        SettingsUI::drawSettingsPanel(m_renderSettings, m_frameStats);
         imGuiLayer.endFrame();
-        
+
         // Do rendering
         m_renderer.drawFrame(m_camera, m_smoothDt, totalTime);
 
