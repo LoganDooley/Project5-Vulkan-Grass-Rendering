@@ -15,6 +15,7 @@
 class VulkanContext;
 class Window;
 class Camera;
+struct RenderSettings;
 
 struct FrameData {
     vk::raii::CommandBuffer commandBuffer{nullptr};
@@ -32,7 +33,7 @@ public:
     Renderer(Renderer&&) = delete;
     Renderer& operator=(Renderer&&) = delete;
 
-    void drawFrame(const Camera& camera, float dt, float totalTime);
+    void drawFrame(const Camera& camera, float dt, float totalTime, const RenderSettings& renderSettings);
 
     ImGuiLayer& getImGuiLayer() { return m_imGuiLayer; }
 

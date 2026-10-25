@@ -8,6 +8,10 @@ groupshared uint visibleCount;
 
 bool passesOrientation(float orientation, float3 v0)
 {
+    if ((pc.cullFlags & 1u) == 0) {
+        return true;
+    }
+
     float3 dirb = float3(cos(orientation), 0.0, sin(orientation));
     float3 cameraPos = pc.camera.position.xyz;
     float3 dirc = normalize(v0 - cameraPos);
@@ -22,6 +26,10 @@ bool pointInFrustum(float3 p) {
 
 bool passesFrustum(float3 v0, float3 v1, float3 v2)
 {
+    if ((pc.cullFlags & 2u) == 0) {
+        return true;
+    }
+
     // eq 14
     float3 m = 0.25 * v0 + 0.5 * v1 + 0.25 * v2;
 
@@ -30,12 +38,16 @@ bool passesFrustum(float3 v0, float3 v1, float3 v2)
 
 bool passesDistance(float3 v0, float3 up, uint id)
 {
+    if ((pc.cullFlags & 4u) == 0) {
+        return true;
+    }
+
     float3 c = pc.camera.position.xyz;
     // eq 19
     float dproj = length(v0 - c - up * dot(v0 - c, up));
 
     // eq 20
-    float dmax = 70.0;
+    float dmax = pc.distanceCullingMaxDistance;
     float keep = 1.0 - dproj / dmax;
     uint level = pcgHash(id) % 8u;
     return dproj <= dmax && level <= floor(8.0 * (1.0 - dproj / dmax));

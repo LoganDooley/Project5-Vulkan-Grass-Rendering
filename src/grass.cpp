@@ -4,6 +4,7 @@
 #include "pipeline_utils.h"
 #include "shader_utils.h"
 #include "gpu_types.h"
+#include "render_settings.h"
 
 #include <cmath>
 
@@ -92,13 +93,15 @@ void Grass::simulate(const vk::raii::CommandBuffer &cmd, float dt, float totalTi
     });
 }
 
-void Grass::draw(const vk::raii::CommandBuffer &cmd, vk::DeviceAddress cameraAddress) const
+void Grass::draw(const vk::raii::CommandBuffer &cmd, vk::DeviceAddress cameraAddress, const RenderSettings& renderSettings) const
 {
     cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *m_drawPipeline);
     GrassDrawPushConstants pc = {
         .camera = cameraAddress,
         .blades = m_blades.getDeviceAddress(),
-        .bladeCount = m_bladeCount
+        .bladeCount = m_bladeCount,
+        .cullFlags = renderSettings.getCullFlags(),
+        .distanceCullingMaxDistance = renderSettings.distanceCullingMaxDistance
     };
     cmd.pushConstants<GrassDrawPushConstants>(*m_drawPipelineLayout,
         vk::ShaderStageFlagBits::eTaskEXT | vk::ShaderStageFlagBits::eMeshEXT | vk::ShaderStageFlagBits::eFragment,

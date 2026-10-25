@@ -5,6 +5,7 @@
 #include "buffer.h"
 
 class VulkanContext;
+struct RenderSettings;
 
 class Grass {
 public:
@@ -17,7 +18,7 @@ public:
 
     void recordInit(const vk::raii::CommandBuffer& cmd) const;
     void simulate(const vk::raii::CommandBuffer& cmd, float dt, float totalTime) const;
-    void draw(const vk::raii::CommandBuffer& cmd, vk::DeviceAddress cameraAddress) const;
+    void draw(const vk::raii::CommandBuffer& cmd, vk::DeviceAddress cameraAddress, const RenderSettings& renderSettings) const;
 
 private:
     void createInitPipelineLayout();

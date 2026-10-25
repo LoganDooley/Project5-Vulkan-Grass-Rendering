@@ -29,10 +29,19 @@ void Application::run() {
         m_smoothDt = m_smoothDt * 0.9f + dt * 0.1f;
         float totalTime = std::chrono::duration<float>(now - m_firstFrameTime).count();
         m_lastFrameTime = now;
+        m_cpuAccumulatedTime += dt;
+        m_cpuAccumulatedFrames++;
 
         // Record cpu time
         m_frameStats.frameHistory[m_frameStats.historyIndex] = dt * 1000.0f;
         m_frameStats.historyIndex = (m_frameStats.historyIndex + 1) % m_frameStats.frameHistory.size();
+        if(m_cpuAccumulatedTime >= 0.5f){
+            // Update at most once every 0.5 seconds
+            m_frameStats.cpuFrameMs = 1000.0f * m_cpuAccumulatedTime / m_cpuAccumulatedFrames;
+            m_cpuAccumulatedTime = 0.0f;
+            m_cpuAccumulatedFrames = 0;
+        }
+
 
         if(m_window.isKeyDown(GLFW_KEY_ESCAPE)) {
             m_window.requestClose();
@@ -76,7 +85,7 @@ void Application::run() {
         imGuiLayer.endFrame();
 
         // Do rendering
-        m_renderer.drawFrame(m_camera, m_smoothDt, totalTime);
+        m_renderer.drawFrame(m_camera, m_smoothDt, totalTime, m_renderSettings);
 
         m_window.endFrame();
     }

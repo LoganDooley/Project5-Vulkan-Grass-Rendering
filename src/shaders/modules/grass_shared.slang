@@ -21,6 +21,8 @@ public struct GrassDrawPushConstants {
     public CameraData *camera;
     public Blade *blades;
     public uint bladeCount;
+    public uint cullFlags;
+    public float distanceCullingMaxDistance;
 };
 
 public struct GrassSimPushConstants {

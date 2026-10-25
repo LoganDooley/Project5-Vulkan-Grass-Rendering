@@ -82,7 +82,7 @@ Renderer::Renderer(const VulkanContext &context, Window &window) :
     });
 }
 
-void Renderer::drawFrame(const Camera& camera, float dt, float totalTime)
+void Renderer::drawFrame(const Camera& camera, float dt, float totalTime, const RenderSettings& renderSettings)
 {
     FrameData& frameData = m_frames[m_frameIndex];
 
@@ -245,7 +245,7 @@ void Renderer::drawFrame(const Camera& camera, float dt, float totalTime)
     commandBuffer.drawMeshTasksEXT(1, 1, 1);
 
     // Run grass pipeline
-    m_grass.draw(commandBuffer, frameData.cameraBuffer.getDeviceAddress());
+    m_grass.draw(commandBuffer, frameData.cameraBuffer.getDeviceAddress(), renderSettings);
 
     // Run triangle pipeline
     commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *m_trianglePipeline);

@@ -31,4 +31,6 @@ private:
     std::chrono::steady_clock::time_point m_firstFrameTime;
     std::chrono::steady_clock::time_point m_lastFrameTime;
     float m_smoothDt = 1.0f / 60.0f;
+    float m_cpuAccumulatedTime = 0.0f;
+    uint32_t m_cpuAccumulatedFrames = 0;
 };
