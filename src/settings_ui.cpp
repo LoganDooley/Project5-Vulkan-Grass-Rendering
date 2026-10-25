@@ -31,7 +31,7 @@ void SettingsUI::drawSettingsPanel(RenderSettings &renderSettings, const FrameSt
 
     if(ImGui::CollapsingHeader("Grass Settings", ImGuiTreeNodeFlags_DefaultOpen)){
         ImGui::SliderFloat("Density (blades/m²)", &renderSettings.grassDensity, 1.0f, 400.0f, "%.0f", ImGuiSliderFlags_Logarithmic);
-        ImGui::SliderFloat("Radius (m)", &renderSettings.grassRadius, 5.0f, 100.0f, "%.0f");
+        ImGui::SliderFloat("Radius (m)", &renderSettings.grassRadius, 5.0f, 200.0f, "%.0f");
         ImGui::Text("Blades: %u (%.1f MB)", stats.bladeCount, stats.bladeCount * 64.0f / (1024.0f * 1024.0f));
         float percentCulled = stats.bladeCount > 0
             ? 100.0f * (1.0f - static_cast<float>(stats.visibleBladeCount) / static_cast<float>(stats.bladeCount))

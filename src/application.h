@@ -6,12 +6,14 @@
 #include "camera.h"
 #include "render_settings.h"
 #include "frame_stats.h"
+#include "benchmark.h"
 
 #include <chrono>
+#include <optional>
 
 class Application {
 public:
-    Application();
+    Application(bool bBenchmarkEnabled);
 
     Application(const Application&) = delete;
     Application& operator=(const Application&) = delete;
@@ -27,6 +29,7 @@ private:
     Renderer m_renderer;
     Camera m_camera;
     FrameStats m_frameStats{};
+    std::optional<Benchmark> m_benchmark = std::nullopt;
 
     std::chrono::steady_clock::time_point m_firstFrameTime;
     std::chrono::steady_clock::time_point m_lastFrameTime;

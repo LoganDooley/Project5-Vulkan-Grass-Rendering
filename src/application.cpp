@@ -7,13 +7,15 @@
 
 #include <algorithm>
 
-Application::Application() : 
+Application::Application(bool bBenchmarkEnabled) : 
     m_window(1280, 720, "Vulkan Grass"),
     m_context(m_window),
     m_renderer(m_context, m_window, m_renderSettings),
     m_camera(glm::vec3(0.0f, 1.0f, 3.0f))
 {
-    
+    if(bBenchmarkEnabled){
+        m_benchmark.emplace(Benchmark::makeBenchmarkRuns(), "benchmark_results.csv");
+    }
 }
 
 void Application::run() {
@@ -46,36 +48,44 @@ void Application::run() {
             m_window.requestClose();
         }
 
-        // Do camera movement
-        CameraInput input{};
+        if(m_benchmark) {
+            // Set up benchmark
+            if(!m_benchmark->update(m_frameStats, m_renderSettings, m_camera)){
+                m_window.requestClose();
+            }
+        }
+        else{
+            // Do camera movement
+            CameraInput input{};
 
-        ImGuiIO& io = ImGui::GetIO();
-        if(!io.WantCaptureMouse) {
-            if (m_window.isMouseDown(GLFW_MOUSE_BUTTON_RIGHT)) {
-                input.look = glm::vec2(m_window.getMouseDelta());
+            ImGuiIO& io = ImGui::GetIO();
+            if(!io.WantCaptureMouse) {
+                if (m_window.isMouseDown(GLFW_MOUSE_BUTTON_RIGHT)) {
+                    input.look = glm::vec2(m_window.getMouseDelta());
+                }
             }
+            if(!io.WantCaptureKeyboard) {
+                if (m_window.isKeyDown(GLFW_KEY_W)) {
+                    input.move.z += 1.0f;
+                }
+                if (m_window.isKeyDown(GLFW_KEY_S)){
+                    input.move.z -= 1.0f;
+                } 
+                if (m_window.isKeyDown(GLFW_KEY_D)) {
+                    input.move.x += 1.0f;
+                }
+                if (m_window.isKeyDown(GLFW_KEY_A)) {
+                    input.move.x -= 1.0f;
+                }
+                if (m_window.isKeyDown(GLFW_KEY_SPACE)) {
+                    input.move.y += 1.0f;
+                }
+                if (m_window.isKeyDown(GLFW_KEY_LEFT_SHIFT)) {
+                    input.move.y -= 1.0f;
+                }
+            }
+            m_camera.update(dt, input);
         }
-        if(!io.WantCaptureKeyboard) {
-            if (m_window.isKeyDown(GLFW_KEY_W)) {
-                input.move.z += 1.0f;
-            }
-            if (m_window.isKeyDown(GLFW_KEY_S)){
-                input.move.z -= 1.0f;
-            } 
-            if (m_window.isKeyDown(GLFW_KEY_D)) {
-                input.move.x += 1.0f;
-            }
-            if (m_window.isKeyDown(GLFW_KEY_A)) {
-                input.move.x -= 1.0f;
-            }
-            if (m_window.isKeyDown(GLFW_KEY_SPACE)) {
-                input.move.y += 1.0f;
-            }
-            if (m_window.isKeyDown(GLFW_KEY_LEFT_SHIFT)) {
-                input.move.y -= 1.0f;
-            }
-        }
-        m_camera.update(dt, input);
 
         m_frameStats.cameraPosition = m_camera.getPosition();
         m_frameStats.cameraYaw = m_camera.getYaw();

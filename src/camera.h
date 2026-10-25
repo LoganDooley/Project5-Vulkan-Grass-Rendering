@@ -18,6 +18,12 @@ public:
     void update(float dt, const CameraInput& input);
     CameraData getCameraData(float aspect) const;
 
+    void setView(glm::vec3 position, float yaw, float pitch) {
+        m_position = position;
+        m_yaw = yaw;
+        m_pitch = pitch;
+    }
+
     glm::vec3 getPosition() const { return m_position; }
     float getYaw() const { return m_yaw; }
     float getPitch() const { return m_pitch; }
@@ -30,7 +36,7 @@ private:
     float m_pitch = 0.0f;
     float m_fovy = 1.0f;
     float m_near = 0.01f;
-    float m_far = 100.f;
+    float m_far = 500.f;
     float m_moveSpeed = 1.0f;
     float m_lookSpeed = 0.003f;
 

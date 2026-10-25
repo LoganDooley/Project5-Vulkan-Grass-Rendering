@@ -27,7 +27,7 @@ struct RenderSettings {
 
     // Grass Settings
     float grassDensity = 25.0f;
-    float grassRadius = 50.0f;
+    float grassRadius = 100.0f;
 
     // Display Settings
     bool bUseVsync = true;

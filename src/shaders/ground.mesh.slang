@@ -3,7 +3,7 @@ import ground_shared;
 
 [[vk::push_constant]] GroundPushConstants pc;
 
-static const float HALF_SIZE = 50.0;
+static const float HALF_SIZE = 150.0;
 
 [shader("mesh")]
 [outputtopology("triangle")]
