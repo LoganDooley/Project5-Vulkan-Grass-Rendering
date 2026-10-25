@@ -60,6 +60,7 @@ private:
 
     const VulkanContext& m_context;
     Window& m_window;
+    vk::PresentModeKHR m_presentMode = vk::PresentModeKHR::eFifo;
     Swapchain m_swapchain;
     Image m_depthImage;
     ImGuiLayer m_imGuiLayer;

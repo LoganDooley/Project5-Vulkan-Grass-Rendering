@@ -15,6 +15,10 @@ void SettingsUI::drawSettingsPanel(RenderSettings &renderSettings, const FrameSt
         ImGui::PlotLines("##frames", stats.frameHistory.data(), (int)stats.frameHistory.size(), (int)stats.historyIndex, "frame ms", 0.0f, 20.0f, ImVec2(0, 60));
     }
 
+    if(ImGui::CollapsingHeader("Performance Settings", ImGuiTreeNodeFlags_DefaultOpen)){
+        ImGui::Checkbox("VSync Enabled", &renderSettings.bUseVsync);
+    }
+
     if(ImGui::CollapsingHeader("Culling Settings", ImGuiTreeNodeFlags_DefaultOpen)){
         ImGui::Checkbox("Orientation Culling", &renderSettings.bOrientationCullingEnabled);
         ImGui::Checkbox("Frustum Culling", &renderSettings.bFrustumCullingEnabled);

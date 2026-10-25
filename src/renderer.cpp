@@ -14,7 +14,7 @@
 Renderer::Renderer(const VulkanContext &context, Window &window) :
     m_context(context),
     m_window(window),
-    m_swapchain(context, window, vk::PresentModeKHR::eFifo),
+    m_swapchain(context, window, m_presentMode),
     m_depthImage(m_context.getAllocator(),
         m_context.getDevice(),
         m_swapchain.getExtent(),
@@ -90,6 +90,13 @@ void Renderer::drawFrame(const Camera& camera, float dt, float totalTime, const 
     // Wait for in flight fence
     if(m_context.getDevice().waitForFences(*frameData.inFlightFence, vk::True, std::numeric_limits<uint64_t>::max()) != vk::Result::eSuccess){
         throw std::runtime_error("Wait for in flight fence failed!");
+    }
+
+    // Check for present mode changed
+    vk::PresentModeKHR desiredPresentMode = renderSettings.bUseVsync ? vk::PresentModeKHR::eFifo : vk::PresentModeKHR::eImmediate;
+    if(desiredPresentMode != m_presentMode){
+        m_presentMode = desiredPresentMode;
+        recreateSwapchain();
     }
 
     // Update camera data
@@ -358,7 +365,7 @@ void Renderer::recreateSwapchain()
     m_window.waitWhileMinimized();
     m_context.getDevice().waitIdle();
 
-    m_swapchain = Swapchain(m_context, m_window, vk::PresentModeKHR::eFifo, *m_swapchain.getSwapchain());
+    m_swapchain = Swapchain(m_context, m_window, m_presentMode, *m_swapchain.getSwapchain());
 
     // Rebuild per-image semaphores
     m_renderFinishedSemaphores.clear();
