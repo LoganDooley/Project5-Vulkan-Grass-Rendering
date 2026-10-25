@@ -1,6 +1,7 @@
 #include "settings_ui.h"
 
 #include <imgui.h>
+#include <glm/trigonometric.hpp>
 
 #include "render_settings.h"
 #include "frame_stats.h"
@@ -13,6 +14,15 @@ void SettingsUI::drawSettingsPanel(RenderSettings &renderSettings, const FrameSt
         ImGui::Text("Frame time: %.2f ms (%.0f fps)", stats.cpuFrameMs, 1000.0f / stats.cpuFrameMs);
         ImGui::Text("GPU total: %.2f ms (sim %.2f, grass %.2f)", stats.gpuTotalMs, stats.gpuSimMs, stats.gpuGrassMs);
         ImGui::PlotLines("##frames", stats.frameHistory.data(), (int)stats.frameHistory.size(), (int)stats.historyIndex, "frame ms", 0.0f, 20.0f, ImVec2(0, 60));
+    }
+
+    if (ImGui::CollapsingHeader("Camera", ImGuiTreeNodeFlags_DefaultOpen)) {
+        const glm::vec3& p = stats.cameraPosition;
+        // Convert to degrees so it is easier to understand
+        float yawDegrees = glm::degrees(stats.cameraYaw);
+        float pitchDegrees = glm::degrees(stats.cameraPitch);
+        ImGui::Text("Position: (%.2f, %.2f, %.2f)", p.x, p.y, p.z);
+        ImGui::Text("Yaw: %.1f degrees  Pitch: %.1f degrees", yawDegrees, pitchDegrees);
     }
 
     if(ImGui::CollapsingHeader("Performance Settings", ImGuiTreeNodeFlags_DefaultOpen)){

@@ -77,6 +77,10 @@ void Application::run() {
         }
         m_camera.update(dt, input);
 
+        m_frameStats.cameraPosition = m_camera.getPosition();
+        m_frameStats.cameraYaw = m_camera.getYaw();
+        m_frameStats.cameraPitch = m_camera.getPitch();
+
         // Begin imgui
         ImGuiLayer& imGuiLayer = m_renderer.getImGuiLayer();
         imGuiLayer.beginFrame();

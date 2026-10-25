@@ -18,6 +18,10 @@ public:
     void update(float dt, const CameraInput& input);
     CameraData getCameraData(float aspect) const;
 
+    glm::vec3 getPosition() const { return m_position; }
+    float getYaw() const { return m_yaw; }
+    float getPitch() const { return m_pitch; }
+
 private:
     glm::vec3 getForwardVector() const;
 
