@@ -17,7 +17,7 @@ public:
     Grass& operator=(Grass&&) = delete;
 
     void recordInit(const vk::raii::CommandBuffer& cmd) const;
-    void simulate(const vk::raii::CommandBuffer& cmd, float dt, float totalTime) const;
+    void simulate(const vk::raii::CommandBuffer& cmd, float dt, float totalTime, const RenderSettings& renderSettings) const;
     void draw(const vk::raii::CommandBuffer& cmd, vk::DeviceAddress cameraAddress, const RenderSettings& renderSettings) const;
 
 private:

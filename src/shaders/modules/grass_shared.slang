@@ -30,6 +30,9 @@ public struct GrassSimPushConstants {
     public uint bladeCount;
     public float deltaTime;
     public float totalTime;
+    public float windStrength;
+    public float gustStrength;
+    public float gravity;
 };
 
 public static const uint BLADES_PER_TASK_GROUP = 32;

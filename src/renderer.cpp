@@ -5,6 +5,7 @@
 #include "shader_utils.h"
 #include "camera.h"
 #include "pipeline_utils.h"
+#include "render_settings.h"
 
 #include <array>
 #include <stdexcept>
@@ -158,7 +159,9 @@ void Renderer::drawFrame(const Camera& camera, float dt, float totalTime, const 
     });
 
     // - Run grass sim
-    m_grass.simulate(commandBuffer, dt, totalTime);
+    if(renderSettings.bSimulate){
+        m_grass.simulate(commandBuffer, dt, totalTime, renderSettings);
+    }
 
     // - Prepare image to be cleared
     transitionImage(commandBuffer, image, 

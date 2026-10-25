@@ -4,8 +4,6 @@ import grass_shared;
 
 static const float waveScale = 0.25;
 static const float waveSpeed = 1.5;
-static const float windStrength = 6.0;
-static const float gustStrength = 14.0;
 
 static const float bezierDegree = 2.0;
 
@@ -13,13 +11,13 @@ float3 windInfluence(float3 v0, float time)
 {
     float2 dir = normalize(float2(1.0, 0.3));
     float phase = dot(v0.xz, dir) * waveScale - time * waveSpeed;
-    float strength = windStrength + gustStrength * (0.5 + 0.5 * sin(phase));
+    float strength = pc.windStrength + pc.gustStrength * (0.5 + 0.5 * sin(phase));
     return float3(dir.x, 0.0, dir.y) * strength;
 }
 
 float3 gravityForce(float3 f)
 {
-    float4 D = float4(0.0, -1.0, 0.0, 9.8);
+    float4 D = float4(0.0, -1.0, 0.0, pc.gravity);
     // Assume mass = 1.0 for now
     float3 gE = normalize(D.xyz) * D.w;
     float3 gF = 0.25 * length(gE) * f;

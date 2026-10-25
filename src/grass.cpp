@@ -55,7 +55,7 @@ void Grass::recordInit(const vk::raii::CommandBuffer &cmd) const
     });
 }
 
-void Grass::simulate(const vk::raii::CommandBuffer &cmd, float dt, float totalTime) const
+void Grass::simulate(const vk::raii::CommandBuffer &cmd, float dt, float totalTime, const RenderSettings& renderSettings) const
 {
     // Add WAR barrier
     vk::MemoryBarrier2 readBeforeWrite = {
@@ -75,7 +75,10 @@ void Grass::simulate(const vk::raii::CommandBuffer &cmd, float dt, float totalTi
         .blades = m_blades.getDeviceAddress(),
         .bladeCount = m_bladeCount,
         .deltaTime = dt,
-        .totalTime = totalTime
+        .totalTime = totalTime,
+        .windStrength = renderSettings.windStrength,
+        .gustStrength = renderSettings.gustStrength,
+        .gravity = renderSettings.gravity
     };
     cmd.pushConstants<GrassSimPushConstants>(*m_simPipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, pc);
     cmd.dispatch((m_bladeCount + 63) / 64, 1, 1);

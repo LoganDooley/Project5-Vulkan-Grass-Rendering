@@ -22,14 +22,14 @@ void Application::run() {
     while (!m_window.shouldClose()) {
         m_window.pollEvents();
         std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
-        float dt = std::chrono::duration<float>(now - m_lastFrameTime).count();
-        dt = std::min(dt, 0.1f);
+        float rawDt = std::chrono::duration<float>(now - m_lastFrameTime).count();
+        float dt = std::min(rawDt, 0.1f);
         // With eFifo at 240 fps, when the simulation is fast, the frame times alternate between fast and slow.
         // Adding a smoothed Dt to try evening it out for simulation puposes
         m_smoothDt = m_smoothDt * 0.9f + dt * 0.1f;
         float totalTime = std::chrono::duration<float>(now - m_firstFrameTime).count();
         m_lastFrameTime = now;
-        m_cpuAccumulatedTime += dt;
+        m_cpuAccumulatedTime += rawDt;
         m_cpuAccumulatedFrames++;
 
         // Record cpu time

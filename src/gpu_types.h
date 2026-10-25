@@ -50,4 +50,7 @@ struct GrassSimPushConstants {
     uint32_t bladeCount;
     float deltaTime;
     float totalTime;
+    float windStrength;
+    float gustStrength;
+    float gravity;
 };

@@ -3,7 +3,7 @@
 #include <cstdint>
 
 struct RenderSettings {
-    inline uint32_t getCullFlags() const {
+    uint32_t getCullFlags() const {
         return (bOrientationCullingEnabled ? 1u : 0u) |
             (bFrustumCullingEnabled ? 2u : 0u) |
             (bDistanceCullingEnabled ? 4u : 0u);
