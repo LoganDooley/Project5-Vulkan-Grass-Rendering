@@ -1,83 +1,53 @@
 #include "terrain.h"
 
 #include "vulkan_context.h"
-#include "render_settings.h"
-#include "gpu_types.h"
-#include "shader_utils.h"
-#include "pipeline_utils.h"
+#include "plane_terrain.h"
 
-static constexpr vk::ShaderStageFlags stageFlags = vk::ShaderStageFlagBits::eMeshEXT | vk::ShaderStageFlagBits::eFragment;
-    
-
-Terrain::Terrain(const VulkanContext &context, vk::Format colorFormat, vk::Format depthFormat) :
-    m_context(context)
+Terrain::Terrain(const VulkanContext& context, vk::Format colorFormat, vk::Format depthFormat, TerrainType type) :
+    m_context(context),
+    m_colorFormat(colorFormat),
+    m_depthFormat(depthFormat),
+    m_type(type)
 {
-    createPlanePipelineLayout();
-    createPlanePipline(colorFormat, depthFormat);
+    setType(type);
 }
 
-void Terrain::draw(const vk::raii::CommandBuffer &cmd, vk::DeviceAddress cameraAddress, const RenderSettings &settings) const
+void Terrain::setType(TerrainType type)
 {
-    switch(settings.terrainMode){
-        case TerrainMode::Plane:
-            drawPlane(cmd, cameraAddress);
+    if(type == m_type && m_mode != nullptr) {
+        return;
+    }
+
+    m_context.getDevice().waitIdle();
+
+    switch(type){
+        case TerrainType::Plane:
+            m_mode = std::make_unique<PlaneTerrain>(m_context, m_colorFormat, m_depthFormat);
             break;
-        case TerrainMode::Heightmap:
-            break;
-        case TerrainMode::Voxel:
-            break;
+        case TerrainType::Heightmap:
+        case TerrainType::Voxel:
         default:
+            m_mode.reset();
             break;
     }
+
+    m_type = type;
 }
 
-void Terrain::createPlanePipelineLayout()
+void Terrain::update(const vk::raii::CommandBuffer &cmd, const glm::vec3 &cameraPos)
 {
-    vk::PushConstantRange pcRange = {
-        .stageFlags = stageFlags,
-        .offset = 0,
-        .size = sizeof(GroundPushConstants)
-    };
-    vk::PipelineLayoutCreateInfo pipelineLayoutCreateInfo = {
-        .pushConstantRangeCount = 1,
-        .pPushConstantRanges = &pcRange
-    };
-    m_planePipelineLayout = vk::raii::PipelineLayout(m_context.getDevice(), pipelineLayoutCreateInfo);
+    if(m_mode == nullptr){
+        return;
+    }
+
+    m_mode->update(cmd, cameraPos);
 }
 
-void Terrain::createPlanePipline(vk::Format colorFormat, vk::Format depthFormat)
+void Terrain::draw(const vk::raii::CommandBuffer &cmd, vk::DeviceAddress cameraAddress) const
 {
-    const vk::raii::Device& device = m_context.getDevice();
-    
-    // Create shader modules
-    vk::raii::ShaderModule meshModule = ShaderUtils::createShaderModule(device, "shaders/ground.mesh.spv");
-    vk::raii::ShaderModule fragModule = ShaderUtils::createShaderModule(device, "shaders/ground.frag.spv");
-    
-    std::vector<vk::PipelineShaderStageCreateInfo> stages = {
-        {
-            .stage = vk::ShaderStageFlagBits::eMeshEXT,
-            .module = *meshModule,
-            .pName = "meshMain"
-        },
-        {
-            .stage = vk::ShaderStageFlagBits::eFragment,
-            .module = *fragModule,
-            .pName = "fragMain"
-        }
-    };
+    if(m_mode == nullptr){
+        return;
+    }
 
-    m_planePipeline = PipelineUtils::createMeshPipeline(device, stages, m_planePipelineLayout, colorFormat, depthFormat);
-}
-
-void Terrain::drawPlane(const vk::raii::CommandBuffer &cmd, vk::DeviceAddress cameraAddress) const
-{
-    cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *m_planePipeline);
-    
-    GroundPushConstants pc = {
-        .camera = cameraAddress
-    };
-
-    cmd.pushConstants<GroundPushConstants>(*m_planePipelineLayout, stageFlags, 0, pc);
-    
-    cmd.drawMeshTasksEXT(1, 1, 1);
+    m_mode->draw(cmd, cameraAddress);
 }

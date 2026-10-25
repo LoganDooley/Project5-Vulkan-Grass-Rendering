@@ -55,10 +55,10 @@ void SettingsUI::drawSettingsPanel(RenderSettings &renderSettings, const FrameSt
     }
 
     if (ImGui::CollapsingHeader("Terrain Settings", ImGuiTreeNodeFlags_DefaultOpen)) {
-        const char* modes[] = { "Plane", "Heightmap", "Voxel" };
-        int mode = static_cast<int>(renderSettings.terrainMode);
-        if (ImGui::Combo("Mode", &mode, modes, IM_ARRAYSIZE(modes))) {
-            renderSettings.terrainMode = static_cast<TerrainMode>(mode);
+        const char* types[] = { "Plane", "Heightmap", "Voxel" };
+        int type = static_cast<int>(renderSettings.terrainType);
+        if (ImGui::Combo("Mode", &type, types, IM_ARRAYSIZE(types))) {
+            renderSettings.terrainType = static_cast<TerrainType>(type);
         }
     }
 

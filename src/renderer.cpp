@@ -24,7 +24,7 @@ Renderer::Renderer(const VulkanContext &context, Window &window, const RenderSet
         m_swapchain.getImageCount(), 
         m_swapchain.getFormat(), 
         m_depthImage.getFormat()),
-    m_terrain(m_context, m_swapchain.getFormat(), m_depthImage.getFormat()),
+    m_terrain(m_context, m_swapchain.getFormat(), m_depthImage.getFormat(), renderSettings.terrainType),
     m_grass(m_context, renderSettings.grassDensity, renderSettings.grassRadius, m_swapchain.getFormat(), m_depthImage.getFormat()),
     m_profiler(context, static_cast<uint32_t>(m_frames.size()))
 {
@@ -116,6 +116,9 @@ void Renderer::drawFrame(const Camera& camera, float dt, float totalTime, const 
         });
     }
 
+    // Check for the terrain type changing
+    m_terrain.setType(renderSettings.terrainType);
+
     // Update camera data
     vk::Extent2D extent = m_swapchain.getExtent();
     float aspect = static_cast<float>(extent.width) / static_cast<float>(extent.height);
@@ -174,6 +177,9 @@ void Renderer::drawFrame(const Camera& camera, float dt, float totalTime, const 
         m_grass.simulate(commandBuffer, dt, totalTime, renderSettings);
     }
     m_profiler.mark(commandBuffer, GpuTimestamp::SimEnd);
+
+    // Update the terrain if needed
+    m_terrain.update(commandBuffer, camera.getPosition());
 
     // - Prepare image to be cleared
     transitionImage(commandBuffer, image, 
@@ -249,7 +255,7 @@ void Renderer::drawFrame(const Camera& camera, float dt, float totalTime, const 
     );
 
     // Run terrain pipeline
-    m_terrain.draw(commandBuffer, frameData.cameraBuffer.getDeviceAddress(), renderSettings);
+    m_terrain.draw(commandBuffer, frameData.cameraBuffer.getDeviceAddress());
 
     // Run grass pipeline
     m_profiler.mark(commandBuffer, GpuTimestamp::GrassStart);

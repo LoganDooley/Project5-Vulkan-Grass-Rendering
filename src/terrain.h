@@ -1,27 +1,31 @@
 #pragma once
 
-#include <vulkan/vulkan_raii.hpp>
+#include "terrain_mode.h"
+#include "render_settings.h"
+
+#include <memory>
 
 class VulkanContext;
-struct RenderSettings;
 
 class Terrain {
 public:
-    Terrain(const VulkanContext& context, vk::Format colorFormat, vk::Format depthFormat);
+    Terrain(const VulkanContext& context, vk::Format colorFormat, vk::Format depthFormat, TerrainType type);
 
     Terrain(const Terrain&) = delete;
     Terrain& operator=(const Terrain&) = delete;
     Terrain(Terrain&&) = delete;
     Terrain& operator=(Terrain&&) = delete;
 
-    void draw(const vk::raii::CommandBuffer& cmd, vk::DeviceAddress cameraAddress, const RenderSettings& settings) const;
+    void setType(TerrainType type);
+    TerrainType getType() const { return m_type; }
+
+    void update(const vk::raii::CommandBuffer& cmd, const glm::vec3& cameraPos);
+    void draw(const vk::raii::CommandBuffer& cmd, vk::DeviceAddress cameraAddress) const;
 
 private:
-    void createPlanePipelineLayout();
-    void createPlanePipline(vk::Format colorFormat, vk::Format depthFormat);
-    void drawPlane(const vk::raii::CommandBuffer& cmd, vk::DeviceAddress cameraAddress) const;
-
     const VulkanContext& m_context;
-    vk::raii::PipelineLayout m_planePipelineLayout{nullptr};
-    vk::raii::Pipeline m_planePipeline{nullptr};
+    vk::Format m_colorFormat;
+    vk::Format m_depthFormat;
+    TerrainType m_type;
+    std::unique_ptr<TerrainMode> m_mode;
 };

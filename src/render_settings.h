@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-enum class TerrainMode : uint32_t {
+enum class TerrainType : uint32_t {
     Plane, Heightmap, Voxel, Count
 };
 
@@ -33,5 +33,5 @@ struct RenderSettings {
     bool bUseVsync = true;
 
     // Terrain Settings
-    TerrainMode terrainMode = TerrainMode::Plane;
+    TerrainType terrainType = TerrainType::Plane;
 };
