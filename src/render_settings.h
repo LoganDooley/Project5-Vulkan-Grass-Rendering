@@ -2,6 +2,10 @@
 
 #include <cstdint>
 
+enum class TerrainMode : uint32_t {
+    Plane, Heightmap, Voxel, Count
+};
+
 struct RenderSettings {
     uint32_t getCullFlags() const {
         return (bOrientationCullingEnabled ? 1u : 0u) |
@@ -26,4 +30,7 @@ struct RenderSettings {
 
     // Display Settings
     bool bUseVsync = true;
+
+    // Terrain Settings
+    TerrainMode terrainMode = TerrainMode::Plane;;
 };

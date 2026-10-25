@@ -39,5 +39,13 @@ void SettingsUI::drawSettingsPanel(RenderSettings &renderSettings, const FrameSt
         ImGui::SliderFloat("Gravity", &renderSettings.gravity, -10.0, 50.f);
     }
 
+    if (ImGui::CollapsingHeader("Terrain Settings", ImGuiTreeNodeFlags_DefaultOpen)) {
+        const char* modes[] = { "Plane", "Heightmap", "Voxel" };
+        int mode = static_cast<int>(renderSettings.terrainMode);
+        if (ImGui::Combo("Mode", &mode, modes, IM_ARRAYSIZE(modes))) {
+            renderSettings.terrainMode = static_cast<TerrainMode>(mode);
+        }
+    }
+
     ImGui::End();
 }

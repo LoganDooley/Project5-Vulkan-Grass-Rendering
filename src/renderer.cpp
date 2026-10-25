@@ -2,9 +2,7 @@
 
 #include "vulkan_context.h"
 #include "window.h"
-#include "shader_utils.h"
 #include "camera.h"
-#include "pipeline_utils.h"
 #include "render_settings.h"
 
 #include <array>
@@ -26,6 +24,7 @@ Renderer::Renderer(const VulkanContext &context, Window &window, const RenderSet
         m_swapchain.getImageCount(), 
         m_swapchain.getFormat(), 
         m_depthImage.getFormat()),
+    m_terrain(m_context, m_swapchain.getFormat(), m_depthImage.getFormat()),
     m_grass(m_context, renderSettings.grassDensity, renderSettings.grassRadius, m_swapchain.getFormat(), m_depthImage.getFormat()),
     m_profiler(context, static_cast<uint32_t>(m_frames.size()))
 {
@@ -66,12 +65,6 @@ Renderer::Renderer(const VulkanContext &context, Window &window, const RenderSet
         vk::SemaphoreCreateInfo semaphoreCreateInfo = {};
         m_renderFinishedSemaphores.emplace_back(context.getDevice(), semaphoreCreateInfo);
     }
-
-    // Create pipeline layouts
-    createGroundPipelineLayout();
-
-    // Create pipelines
-    createGroundPipeline();
 
     // Perform grass init immediately
     m_context.submitImmediate([&](const vk::raii::CommandBuffer& cmd) {
@@ -221,15 +214,8 @@ void Renderer::drawFrame(const Camera& camera, float dt, float totalTime, const 
         }
     );
 
-    // Create push constants
-    GroundPushConstants pc = {
-        .camera = frameData.cameraBuffer.getDeviceAddress()
-    };
-
-    // Run ground pipeline
-    commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *m_groundPipeline);
-    commandBuffer.pushConstants<GroundPushConstants>(*m_groundPipelineLayout, m_pcStages, 0, pc);
-    commandBuffer.drawMeshTasksEXT(1, 1, 1);
+    // Run terrain pipeline
+    m_terrain.draw(commandBuffer, frameData.cameraBuffer.getDeviceAddress(), renderSettings);
 
     // Run grass pipeline
     m_profiler.mark(commandBuffer, GpuTimestamp::GrassStart);
@@ -352,45 +338,6 @@ void Renderer::recreateSwapchain()
     createDepthImage();
 
     m_window.clearResized();
-}
-
-void Renderer::createGroundPipelineLayout()
-{
-    m_pcStages = vk::ShaderStageFlagBits::eMeshEXT | vk::ShaderStageFlagBits::eFragment;
-    vk::PushConstantRange pcRange = {
-        .stageFlags = m_pcStages,
-        .offset = 0,
-        .size = sizeof(GroundPushConstants)
-    };
-    vk::PipelineLayoutCreateInfo pipelineLayoutCreateInfo = {
-        .pushConstantRangeCount = 1,
-        .pPushConstantRanges = &pcRange
-    };
-    m_groundPipelineLayout = vk::raii::PipelineLayout(m_context.getDevice(), pipelineLayoutCreateInfo);
-}
-
-void Renderer::createGroundPipeline()
-{
-    const vk::raii::Device& device = m_context.getDevice();
-    
-    // Create shader modules
-    vk::raii::ShaderModule meshModule = ShaderUtils::createShaderModule(device, "shaders/ground.mesh.spv");
-    vk::raii::ShaderModule fragModule = ShaderUtils::createShaderModule(device, "shaders/ground.frag.spv");
-    
-    std::vector<vk::PipelineShaderStageCreateInfo> stages = {
-        {
-            .stage = vk::ShaderStageFlagBits::eMeshEXT,
-            .module = *meshModule,
-            .pName = "meshMain"
-        },
-        {
-            .stage = vk::ShaderStageFlagBits::eFragment,
-            .module = *fragModule,
-            .pName = "fragMain"
-        }
-    };
-
-    m_groundPipeline = PipelineUtils::createMeshPipeline(device, stages, m_groundPipelineLayout, m_swapchain.getFormat(), m_depthImage.getFormat());
 }
 
 void Renderer::createDepthImage()

@@ -9,6 +9,7 @@
 #include "grass.h"
 #include "imgui_layer.h"
 #include "gpu_profiler.h"
+#include "terrain.h"
 
 #include <array>
 #include <vector>
@@ -51,9 +52,6 @@ private:
 
     void recreateSwapchain();
 
-    void createGroundPipelineLayout();
-    void createGroundPipeline();
-
     void createDepthImage();
 
     const VulkanContext& m_context;
@@ -62,13 +60,12 @@ private:
     Swapchain m_swapchain;
     Image m_depthImage;
     ImGuiLayer m_imGuiLayer;
-    vk::raii::PipelineLayout m_groundPipelineLayout{nullptr};
-    vk::raii::Pipeline m_groundPipeline{nullptr};
     vk::raii::CommandPool m_commandPool{nullptr};
     std::array<FrameData, 2> m_frames;
     std::vector<vk::raii::Semaphore> m_renderFinishedSemaphores;
     uint32_t m_frameIndex = 0;
     vk::ShaderStageFlags m_pcStages;
+    Terrain m_terrain;
     Grass m_grass;
     GpuProfiler m_profiler;
 };
