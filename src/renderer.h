@@ -27,7 +27,7 @@ struct FrameData {
 
 class Renderer {
 public:
-    Renderer(const VulkanContext& context, Window& window);
+    Renderer(const VulkanContext& context, Window& window, const RenderSettings& renderSettings);
 
     Renderer(const Renderer&) = delete;
     Renderer& operator=(const Renderer&) = delete;
@@ -38,6 +38,8 @@ public:
 
     ImGuiLayer& getImGuiLayer() { return m_imGuiLayer; }
     const GpuTimings& getGpuTimings() const { return m_profiler.getTimings(); }
+
+    uint32_t getBladeCount() const { return m_grass.getBladeCount(); }
 
 private:
     static void transitionImage(const vk::raii::CommandBuffer& cmd,

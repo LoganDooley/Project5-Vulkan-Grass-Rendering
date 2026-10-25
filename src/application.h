@@ -21,11 +21,11 @@ public:
     void run();
 
 private:
+    RenderSettings m_renderSettings{};  
     Window m_window;
     VulkanContext m_context;
     Renderer m_renderer;
     Camera m_camera;
-    RenderSettings m_renderSettings{};
     FrameStats m_frameStats{};
 
     std::chrono::steady_clock::time_point m_firstFrameTime;

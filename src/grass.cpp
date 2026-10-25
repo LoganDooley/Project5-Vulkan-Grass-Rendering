@@ -9,13 +9,11 @@
 #include <cmath>
 
 Grass::Grass(const VulkanContext &context, 
-    uint32_t bladeCount, float areaSize,
+    float density, float radius,
     vk::Format colorFormat, vk::Format depthFormat) :
-    m_context(context),
-    m_bladeCount(bladeCount),
-    m_areaSize(areaSize)
+    m_context(context)
 {
-    m_blades = Buffer(m_context.getAllocator(), m_context.getDevice(), bladeCount * sizeof(Blade), vk::BufferUsageFlagBits::eStorageBuffer, false);
+    resize(density, radius);
 
     // Create pipeline layouts
     createInitPipelineLayout();
@@ -28,6 +26,16 @@ Grass::Grass(const VulkanContext &context,
     createSimPipeline();
 }
 
+void Grass::resize(float density, float radius)
+{
+    m_density = density;
+    m_radius = radius;
+    m_gridWidth = std::max(1u, (uint32_t)std::lround(2.0f * radius * std::sqrt(density)));
+    m_bladeCount = m_gridWidth * m_gridWidth;
+
+    m_blades = Buffer(m_context.getAllocator(), m_context.getDevice(), m_bladeCount * sizeof(Blade), vk::BufferUsageFlagBits::eStorageBuffer, false);
+}
+
 void Grass::recordInit(const vk::raii::CommandBuffer &cmd) const
 {
     cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *m_initPipeline);
@@ -35,8 +43,8 @@ void Grass::recordInit(const vk::raii::CommandBuffer &cmd) const
     GrassInitPushConstants pc = { 
         .blades = m_blades.getDeviceAddress(),
         .bladeCount = m_bladeCount,
-        .gridWidth = static_cast<uint32_t>(std::ceil(std::sqrt(static_cast<float>(m_bladeCount)))),
-        .areaSize = m_areaSize,
+        .gridWidth = m_gridWidth,
+        .areaSize = 2 * m_radius,
         .seed = 1234
     };
     cmd.pushConstants<GrassInitPushConstants>(*m_initPipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, pc);

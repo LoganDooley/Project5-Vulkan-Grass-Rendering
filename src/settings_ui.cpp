@@ -19,6 +19,12 @@ void SettingsUI::drawSettingsPanel(RenderSettings &renderSettings, const FrameSt
         ImGui::Checkbox("VSync Enabled", &renderSettings.bUseVsync);
     }
 
+    if(ImGui::CollapsingHeader("Grass Settings", ImGuiTreeNodeFlags_DefaultOpen)){
+        ImGui::SliderFloat("Density (blades/m²)", &renderSettings.grassDensity, 1.0f, 400.0f, "%.0f", ImGuiSliderFlags_Logarithmic);
+        ImGui::SliderFloat("Radius (m)", &renderSettings.grassRadius, 5.0f, 100.0f, "%.0f");
+        ImGui::Text("Blades: %u (%.1f MB)", stats.bladeCount, stats.bladeCount * 64.0f / (1024.0f * 1024.0f));
+    }
+
     if(ImGui::CollapsingHeader("Culling Settings", ImGuiTreeNodeFlags_DefaultOpen)){
         ImGui::Checkbox("Orientation Culling", &renderSettings.bOrientationCullingEnabled);
         ImGui::Checkbox("Frustum Culling", &renderSettings.bFrustumCullingEnabled);

@@ -11,7 +11,7 @@
 #include <stdexcept>
 #include <limits>
 
-Renderer::Renderer(const VulkanContext &context, Window &window) :
+Renderer::Renderer(const VulkanContext &context, Window &window, const RenderSettings& renderSettings) :
     m_context(context),
     m_window(window),
     m_swapchain(context, window, m_presentMode),
@@ -26,7 +26,7 @@ Renderer::Renderer(const VulkanContext &context, Window &window) :
         m_swapchain.getImageCount(), 
         m_swapchain.getFormat(), 
         m_depthImage.getFormat()),
-    m_grass(m_context, 1u << 20, 100.0f, m_swapchain.getFormat(), m_depthImage.getFormat()),
+    m_grass(m_context, renderSettings.grassDensity, renderSettings.grassRadius, m_swapchain.getFormat(), m_depthImage.getFormat()),
     m_profiler(context, static_cast<uint32_t>(m_frames.size()))
 {
     // Create command pool
@@ -100,6 +100,16 @@ void Renderer::drawFrame(const Camera& camera, float dt, float totalTime, const 
     if(desiredPresentMode != m_presentMode){
         m_presentMode = desiredPresentMode;
         recreateSwapchain();
+    }
+
+    // Check for the grass density changing
+    if(renderSettings.grassDensity != m_grass.getDensity() || 
+        renderSettings.grassRadius != m_grass.getRadius()){
+        m_context.getDevice().waitIdle();
+        m_grass.resize(renderSettings.grassDensity, renderSettings.grassRadius);
+        m_context.submitImmediate([&](const vk::raii::CommandBuffer& cmd){
+            m_grass.recordInit(cmd);
+        });
     }
 
     // Update camera data

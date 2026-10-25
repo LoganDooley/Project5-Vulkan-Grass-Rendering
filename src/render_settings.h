@@ -21,7 +21,8 @@ struct RenderSettings {
     float gravity = 9.8f;
 
     // Grass Settings
-    uint32_t bladeCountLog2 = 18;
+    float grassDensity = 25.0f;
+    float grassRadius = 50.0f;
 
     // Display Settings
     bool bUseVsync = true;

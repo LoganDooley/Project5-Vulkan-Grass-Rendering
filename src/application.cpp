@@ -10,7 +10,7 @@
 Application::Application() : 
     m_window(1280, 720, "Vulkan Grass"),
     m_context(m_window),
-    m_renderer(m_context, m_window),
+    m_renderer(m_context, m_window, m_renderSettings),
     m_camera(glm::vec3(0.0f, 1.0f, 3.0f))
 {
     
@@ -90,6 +90,8 @@ void Application::run() {
         m_frameStats.gpuSimMs = gpuTimings.simMs;
         m_frameStats.gpuGrassMs = gpuTimings.grassMs;
         m_frameStats.gpuTotalMs = gpuTimings.totalMs;
+
+        m_frameStats.bladeCount = m_renderer.getBladeCount();
 
         m_window.endFrame();
     }

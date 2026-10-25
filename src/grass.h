@@ -9,16 +9,22 @@ struct RenderSettings;
 
 class Grass {
 public:
-    Grass(const VulkanContext& context, uint32_t bladeCount, float areaSize, vk::Format colorFormat, vk::Format depthFormat);
+    Grass(const VulkanContext& context, float density, float radius, vk::Format colorFormat, vk::Format depthFormat);
 
     Grass(const Grass&) = delete;
     Grass& operator=(const Grass&) = delete;
     Grass(Grass&&) = delete;
     Grass& operator=(Grass&&) = delete;
 
+    void resize(float density, float radius);
+
     void recordInit(const vk::raii::CommandBuffer& cmd) const;
     void simulate(const vk::raii::CommandBuffer& cmd, float dt, float totalTime, const RenderSettings& renderSettings) const;
     void draw(const vk::raii::CommandBuffer& cmd, vk::DeviceAddress cameraAddress, const RenderSettings& renderSettings) const;
+
+    float getDensity() const { return m_density; }
+    float getRadius() const { return m_radius; }
+    uint32_t getBladeCount() const { return m_bladeCount; }
 
 private:
     void createInitPipelineLayout();
@@ -30,8 +36,10 @@ private:
     void createSimPipeline();
 
     const VulkanContext& m_context;
+    float m_density;
+    float m_radius;
+    uint32_t m_gridWidth;
     uint32_t m_bladeCount = 0;
-    float m_areaSize = 1.f;
     Buffer m_blades;
     vk::raii::PipelineLayout m_initPipelineLayout{nullptr};
     vk::raii::Pipeline m_initPipeline{nullptr};
