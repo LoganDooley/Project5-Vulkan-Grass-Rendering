@@ -13,13 +13,13 @@ bool passesOrientation(float orientation, float3 v0)
     }
 
     float3 dirb = float3(cos(orientation), 0.0, sin(orientation));
-    float3 cameraPos = pc.camera.position.xyz;
+    float3 cameraPos = pc.cullCamera.position.xyz;
     float3 dirc = normalize(v0 - cameraPos);
     return abs(dot(dirc, dirb)) <= 0.9;
 }
 
 bool pointInFrustum(float3 p) {
-    float4 clip = mul(pc.camera.viewProj, float4(p, 1.0));
+    float4 clip = mul(pc.cullCamera.viewProj, float4(p, 1.0));
     float h = clip.w + 1.0;
     return (all(clip.xyz >= -h) && all(clip.xyz <= h));
 }
@@ -42,7 +42,7 @@ bool passesDistance(float3 v0, float3 up, uint id)
         return true;
     }
 
-    float3 c = pc.camera.position.xyz;
+    float3 c = pc.cullCamera.position.xyz;
     // eq 19
     float dproj = length(v0 - c - up * dot(v0 - c, up));
 

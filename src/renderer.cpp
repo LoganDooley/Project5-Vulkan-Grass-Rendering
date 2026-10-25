@@ -57,6 +57,11 @@ Renderer::Renderer(const VulkanContext &context, Window &window, const RenderSet
             sizeof(CameraData),
             vk::BufferUsageFlagBits::eStorageBuffer,
             true);
+        m_frames[i].cullCameraBuffer = Buffer(m_context.getAllocator(), 
+            m_context.getDevice(), 
+            sizeof(CameraData),
+            vk::BufferUsageFlagBits::eStorageBuffer,
+            true);
     }
 
     // Create render finished semaphores
@@ -106,6 +111,17 @@ void Renderer::drawFrame(const Camera& camera, float dt, float totalTime, const 
 
     CameraData cameraData = camera.getCameraData(aspect);
     frameData.cameraBuffer.write(&cameraData, sizeof(cameraData));
+    
+    // Update cull camera data
+    if(renderSettings.bFreezeCulling && !m_cullCameraFrozen){
+        m_frozenCullCamera = cameraData;
+        m_cullCameraFrozen = true;
+    }
+    else if(!renderSettings.bFreezeCulling){
+        m_cullCameraFrozen = false;
+    }
+    const CameraData& cullCamera = renderSettings.bFreezeCulling ? m_frozenCullCamera : cameraData;
+    frameData.cullCameraBuffer.write(&cullCamera, sizeof(CameraData));
 
     // Acquire swapchain image
     uint32_t imageIndex;
@@ -219,7 +235,10 @@ void Renderer::drawFrame(const Camera& camera, float dt, float totalTime, const 
 
     // Run grass pipeline
     m_profiler.mark(commandBuffer, GpuTimestamp::GrassStart);
-    m_grass.draw(commandBuffer, frameData.cameraBuffer.getDeviceAddress(), renderSettings);
+    m_grass.draw(commandBuffer, 
+        frameData.cameraBuffer.getDeviceAddress(), 
+        frameData.cullCameraBuffer.getDeviceAddress(), 
+        renderSettings);
     m_profiler.mark(commandBuffer, GpuTimestamp::GrassEnd);
 
     // Draw imgui

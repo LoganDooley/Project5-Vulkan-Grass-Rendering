@@ -24,6 +24,7 @@ struct FrameData {
     vk::raii::Semaphore imageAvailableSemaphore{nullptr};
     vk::raii::Fence inFlightFence{nullptr};
     Buffer cameraBuffer;
+    Buffer cullCameraBuffer;
 };
 
 class Renderer {
@@ -68,4 +69,6 @@ private:
     Terrain m_terrain;
     Grass m_grass;
     GpuProfiler m_profiler;
+    CameraData m_frozenCullCamera{};
+    bool m_cullCameraFrozen = false;
 };

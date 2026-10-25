@@ -19,6 +19,7 @@ public struct GrassInitPushConstants {
 
 public struct GrassDrawPushConstants {
     public CameraData *camera;
+    public CameraData *cullCamera;
     public Blade *blades;
     public uint bladeCount;
     public uint cullFlags;

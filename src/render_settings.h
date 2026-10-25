@@ -13,6 +13,7 @@ struct RenderSettings {
             (bDistanceCullingEnabled ? 4u : 0u);
     }
     // Culling Settings
+    bool bFreezeCulling = false;
     bool bOrientationCullingEnabled = true;
     bool bFrustumCullingEnabled = true;
     bool bDistanceCullingEnabled = true;
@@ -32,5 +33,5 @@ struct RenderSettings {
     bool bUseVsync = true;
 
     // Terrain Settings
-    TerrainMode terrainMode = TerrainMode::Plane;;
+    TerrainMode terrainMode = TerrainMode::Plane;
 };

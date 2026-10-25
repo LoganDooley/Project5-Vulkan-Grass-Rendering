@@ -26,6 +26,7 @@ void SettingsUI::drawSettingsPanel(RenderSettings &renderSettings, const FrameSt
     }
 
     if(ImGui::CollapsingHeader("Culling Settings", ImGuiTreeNodeFlags_DefaultOpen)){
+        ImGui::Checkbox("Freeze Culling", &renderSettings.bFreezeCulling);
         ImGui::Checkbox("Orientation Culling", &renderSettings.bOrientationCullingEnabled);
         ImGui::Checkbox("Frustum Culling", &renderSettings.bFrustumCullingEnabled);
         ImGui::Checkbox("Distance Culling", &renderSettings.bDistanceCullingEnabled);

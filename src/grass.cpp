@@ -105,11 +105,12 @@ void Grass::simulate(const vk::raii::CommandBuffer &cmd, float dt, float totalTi
     });
 }
 
-void Grass::draw(const vk::raii::CommandBuffer &cmd, vk::DeviceAddress cameraAddress, const RenderSettings& renderSettings) const
+void Grass::draw(const vk::raii::CommandBuffer &cmd, vk::DeviceAddress cameraAddress, vk::DeviceAddress cullCameraAddress, const RenderSettings& renderSettings) const
 {
     cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *m_drawPipeline);
     GrassDrawPushConstants pc = {
         .camera = cameraAddress,
+        .cullCamera = cullCameraAddress,
         .blades = m_blades.getDeviceAddress(),
         .bladeCount = m_bladeCount,
         .cullFlags = renderSettings.getCullFlags(),

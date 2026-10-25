@@ -33,6 +33,7 @@ struct GrassInitPushConstants {
 
 struct GrassDrawPushConstants {
     vk::DeviceAddress camera;
+    vk::DeviceAddress cullCamera;
     vk::DeviceAddress blades;
     uint32_t bladeCount;
     uint32_t cullFlags;
