@@ -50,3 +50,10 @@ struct GrassSimPushConstants {
     float gustStrength;
     float gravity;
 };
+
+struct HeightmapPushConstants {
+    vk::DeviceAddress camera;
+    glm::vec2 origin;
+    float patchSize;
+    uint32_t patchesPerSide;
+};

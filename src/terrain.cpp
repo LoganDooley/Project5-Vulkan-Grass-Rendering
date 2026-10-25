@@ -2,6 +2,7 @@
 
 #include "vulkan_context.h"
 #include "plane_terrain.h"
+#include "heightmap_terrain.h"
 
 Terrain::Terrain(const VulkanContext& context, vk::Format colorFormat, vk::Format depthFormat, TerrainType type) :
     m_context(context),
@@ -25,6 +26,8 @@ void Terrain::setType(TerrainType type)
             m_mode = std::make_unique<PlaneTerrain>(m_context, m_colorFormat, m_depthFormat);
             break;
         case TerrainType::Heightmap:
+            m_mode = std::make_unique<HeightmapTerrain>(m_context, m_colorFormat, m_depthFormat);
+            break;
         case TerrainType::Voxel:
         default:
             m_mode.reset();

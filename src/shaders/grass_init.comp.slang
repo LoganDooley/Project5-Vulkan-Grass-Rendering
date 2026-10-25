@@ -1,3 +1,5 @@
+import common;
+
 import grass_shared;
 
 [[vk::push_constant]] GrassInitPushConstants pc;
