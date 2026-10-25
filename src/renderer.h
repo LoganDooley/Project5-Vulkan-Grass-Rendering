@@ -51,14 +51,8 @@ private:
 
     void recreateSwapchain();
 
-    void createMeshPipelineLayout();
-    void createAnimPipelineLayout();
-    void createTrianglePipeline();
+    void createGroundPipelineLayout();
     void createGroundPipeline();
-    void createAnimPipeline();
-
-    // Pipeline helpers
-    vk::raii::Pipeline createMeshPipeline(const std::vector<vk::PipelineShaderStageCreateInfo>& stages, vk::PipelineLayout layout);
 
     void createDepthImage();
 
@@ -68,17 +62,13 @@ private:
     Swapchain m_swapchain;
     Image m_depthImage;
     ImGuiLayer m_imGuiLayer;
-    vk::raii::PipelineLayout m_meshPipelineLayout{nullptr};
-    vk::raii::Pipeline m_trianglePipeline{nullptr}; 
-    vk::raii::PipelineLayout m_animPipelineLayout{nullptr};
-    vk::raii::Pipeline m_animPipeline{nullptr};
+    vk::raii::PipelineLayout m_groundPipelineLayout{nullptr};
     vk::raii::Pipeline m_groundPipeline{nullptr};
     vk::raii::CommandPool m_commandPool{nullptr};
     std::array<FrameData, 2> m_frames;
     std::vector<vk::raii::Semaphore> m_renderFinishedSemaphores;
     uint32_t m_frameIndex = 0;
     vk::ShaderStageFlags m_pcStages;
-    Buffer m_positionsBuffer;
     Grass m_grass;
     GpuProfiler m_profiler;
 };

@@ -6,6 +6,7 @@
 #include "gpu_types.h"
 #include "render_settings.h"
 
+#include <algorithm>
 #include <cmath>
 
 Grass::Grass(const VulkanContext &context, 

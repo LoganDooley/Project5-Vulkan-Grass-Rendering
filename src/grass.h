@@ -36,9 +36,9 @@ private:
     void createSimPipeline();
 
     const VulkanContext& m_context;
-    float m_density;
-    float m_radius;
-    uint32_t m_gridWidth;
+    float m_density = 25.0f;
+    float m_radius = 50.0f;
+    uint32_t m_gridWidth = 0;
     uint32_t m_bladeCount = 0;
     Buffer m_blades;
     vk::raii::PipelineLayout m_initPipelineLayout{nullptr};

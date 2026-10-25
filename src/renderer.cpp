@@ -67,16 +67,11 @@ Renderer::Renderer(const VulkanContext &context, Window &window, const RenderSet
         m_renderFinishedSemaphores.emplace_back(context.getDevice(), semaphoreCreateInfo);
     }
 
-    m_positionsBuffer = Buffer(m_context.getAllocator(), m_context.getDevice(), 3 * sizeof(glm::vec4), vk::BufferUsageFlagBits::eStorageBuffer, false);
-
     // Create pipeline layouts
-    createMeshPipelineLayout();
-    createAnimPipelineLayout();
+    createGroundPipelineLayout();
 
     // Create pipelines
-    createTrianglePipeline();
     createGroundPipeline();
-    createAnimPipeline();
 
     // Perform grass init immediately
     m_context.submitImmediate([&](const vk::raii::CommandBuffer& cmd) {
@@ -145,40 +140,6 @@ void Renderer::drawFrame(const Camera& camera, float dt, float totalTime, const 
     });
 
     m_profiler.beginFrame(commandBuffer, m_frameIndex);
-
-    // - Wait for mesh shader before we overwrite
-    vk::MemoryBarrier2 readBeforeWrite = {
-        .srcStageMask  = vk::PipelineStageFlagBits2::eTaskShaderEXT | vk::PipelineStageFlagBits2::eMeshShaderEXT,
-        .srcAccessMask = vk::AccessFlagBits2::eShaderStorageRead,
-        .dstStageMask  = vk::PipelineStageFlagBits2::eComputeShader,
-        .dstAccessMask = vk::AccessFlagBits2::eShaderStorageWrite,
-    };
-
-    commandBuffer.pipelineBarrier2(vk::DependencyInfo{ 
-        .memoryBarrierCount = 1, 
-        .pMemoryBarriers = &readBeforeWrite 
-    });
-
-    // - Run compute shader
-    commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, *m_animPipeline);
-    AnimPushConstants animPc = { 
-        .positions = m_positionsBuffer.getDeviceAddress(), 
-        .time = totalTime 
-    };
-    commandBuffer.pushConstants<AnimPushConstants>(*m_animPipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, animPc);
-    commandBuffer.dispatch(1, 1, 1);
-
-    // - Finish writes before read
-    vk::MemoryBarrier2 writeBeforeRead = {
-        .srcStageMask  = vk::PipelineStageFlagBits2::eComputeShader,
-        .srcAccessMask = vk::AccessFlagBits2::eShaderStorageWrite,
-        .dstStageMask  = vk::PipelineStageFlagBits2::eTaskShaderEXT | vk::PipelineStageFlagBits2::eMeshShaderEXT,
-        .dstAccessMask = vk::AccessFlagBits2::eShaderStorageRead,
-    };
-    commandBuffer.pipelineBarrier2(vk::DependencyInfo{ 
-        .memoryBarrierCount = 1, 
-        .pMemoryBarriers = &writeBeforeRead 
-    });
 
     // - Run grass sim
     m_profiler.mark(commandBuffer, GpuTimestamp::SimStart);
@@ -261,25 +222,19 @@ void Renderer::drawFrame(const Camera& camera, float dt, float totalTime, const 
     );
 
     // Create push constants
-    PushConstants pc = {
-        .camera = frameData.cameraBuffer.getDeviceAddress(),
-        .positions = m_positionsBuffer.getDeviceAddress()
+    GroundPushConstants pc = {
+        .camera = frameData.cameraBuffer.getDeviceAddress()
     };
 
     // Run ground pipeline
     commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *m_groundPipeline);
-    commandBuffer.pushConstants<PushConstants>(*m_meshPipelineLayout, m_pcStages, 0, pc);
+    commandBuffer.pushConstants<GroundPushConstants>(*m_groundPipelineLayout, m_pcStages, 0, pc);
     commandBuffer.drawMeshTasksEXT(1, 1, 1);
 
     // Run grass pipeline
     m_profiler.mark(commandBuffer, GpuTimestamp::GrassStart);
     m_grass.draw(commandBuffer, frameData.cameraBuffer.getDeviceAddress(), renderSettings);
     m_profiler.mark(commandBuffer, GpuTimestamp::GrassEnd);
-
-    // Run triangle pipeline
-    commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *m_trianglePipeline);
-    commandBuffer.pushConstants<PushConstants>(*m_meshPipelineLayout, m_pcStages, 0, pc);
-    commandBuffer.drawMeshTasksEXT(2, 1, 1);
 
     // Draw imgui
     m_imGuiLayer.record(commandBuffer);
@@ -399,64 +354,19 @@ void Renderer::recreateSwapchain()
     m_window.clearResized();
 }
 
-void Renderer::createMeshPipelineLayout()
+void Renderer::createGroundPipelineLayout()
 {
-    m_pcStages = vk::ShaderStageFlagBits::eTaskEXT | vk::ShaderStageFlagBits::eMeshEXT | vk::ShaderStageFlagBits::eFragment;
+    m_pcStages = vk::ShaderStageFlagBits::eMeshEXT | vk::ShaderStageFlagBits::eFragment;
     vk::PushConstantRange pcRange = {
         .stageFlags = m_pcStages,
         .offset = 0,
-        .size = sizeof(PushConstants)
+        .size = sizeof(GroundPushConstants)
     };
     vk::PipelineLayoutCreateInfo pipelineLayoutCreateInfo = {
         .pushConstantRangeCount = 1,
         .pPushConstantRanges = &pcRange
     };
-    m_meshPipelineLayout = vk::raii::PipelineLayout(m_context.getDevice(), pipelineLayoutCreateInfo);
-}
-
-void Renderer::createAnimPipelineLayout()
-{
-    vk::PushConstantRange range = {
-        .stageFlags = vk::ShaderStageFlagBits::eCompute,
-        .offset = 0,
-        .size = sizeof(AnimPushConstants)
-    };
-
-    vk::PipelineLayoutCreateInfo pipelineLayoutCreateInfo = {
-        .pushConstantRangeCount = 1,
-        .pPushConstantRanges = &range
-    };
-    m_animPipelineLayout = vk::raii::PipelineLayout(m_context.getDevice(), pipelineLayoutCreateInfo);
-}
-
-void Renderer::createTrianglePipeline()
-{
-    const vk::raii::Device& device = m_context.getDevice();
-    
-    // Create shader modules
-    vk::raii::ShaderModule taskModule = ShaderUtils::createShaderModule(device, "shaders/triangle.task.spv");
-    vk::raii::ShaderModule meshModule = ShaderUtils::createShaderModule(device, "shaders/triangle.mesh.spv");
-    vk::raii::ShaderModule fragModule = ShaderUtils::createShaderModule(device, "shaders/triangle.frag.spv");
-
-    std::vector<vk::PipelineShaderStageCreateInfo> stages = {
-        {
-            .stage = vk::ShaderStageFlagBits::eTaskEXT,
-            .module = *taskModule,
-            .pName = "taskMain"
-        },
-        {
-            .stage = vk::ShaderStageFlagBits::eMeshEXT,
-            .module = *meshModule,
-            .pName = "meshMain"
-        },
-        {
-            .stage = vk::ShaderStageFlagBits::eFragment,
-            .module = *fragModule,
-            .pName = "fragMain"
-        }
-    };
-
-    m_trianglePipeline = PipelineUtils::createMeshPipeline(device, stages, m_meshPipelineLayout, m_swapchain.getFormat(), m_depthImage.getFormat());
+    m_groundPipelineLayout = vk::raii::PipelineLayout(m_context.getDevice(), pipelineLayoutCreateInfo);
 }
 
 void Renderer::createGroundPipeline()
@@ -480,14 +390,7 @@ void Renderer::createGroundPipeline()
         }
     };
 
-    m_groundPipeline = PipelineUtils::createMeshPipeline(device, stages, m_meshPipelineLayout, m_swapchain.getFormat(), m_depthImage.getFormat());
-}
-
-void Renderer::createAnimPipeline()
-{
-    vk::raii::ShaderModule module = ShaderUtils::createShaderModule(m_context.getDevice(), "shaders/triangle_anim.comp.spv");
-
-    m_animPipeline = PipelineUtils::createComputePipeline(m_context.getDevice(), module, m_animPipelineLayout);
+    m_groundPipeline = PipelineUtils::createMeshPipeline(device, stages, m_groundPipelineLayout, m_swapchain.getFormat(), m_depthImage.getFormat());
 }
 
 void Renderer::createDepthImage()

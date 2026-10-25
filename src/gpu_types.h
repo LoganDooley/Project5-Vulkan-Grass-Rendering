@@ -11,14 +11,8 @@ struct CameraData {
 };
 static_assert(sizeof(CameraData) == 208, "CameraData must match the size in Slang");
 
-struct PushConstants {
+struct GroundPushConstants {
     vk::DeviceAddress camera; // Gpu address of camera buffer
-    vk::DeviceAddress positions;
-};
-
-struct AnimPushConstants {
-    vk::DeviceAddress positions;
-    float time;
 };
 
 struct Blade {

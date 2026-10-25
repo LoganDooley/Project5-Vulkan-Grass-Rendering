@@ -1,7 +1,7 @@
 import common;
 import ground_shared;
 
-[[vk::push_constant]] PushConstants pc;
+[[vk::push_constant]] GroundPushConstants pc;
 
 static const float HALF_SIZE = 50.0;
 
