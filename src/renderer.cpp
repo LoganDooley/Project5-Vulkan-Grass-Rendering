@@ -56,12 +56,22 @@ Renderer::Renderer(const VulkanContext &context, Window &window, const RenderSet
             m_context.getDevice(), 
             sizeof(CameraData),
             vk::BufferUsageFlagBits::eStorageBuffer,
-            true);
+            HostAccess::Write);
         m_frames[i].cullCameraBuffer = Buffer(m_context.getAllocator(), 
             m_context.getDevice(), 
             sizeof(CameraData),
             vk::BufferUsageFlagBits::eStorageBuffer,
-            true);
+            HostAccess::Write);
+        m_frames[i].visibleCounter = Buffer(m_context.getAllocator(), 
+            m_context.getDevice(), 
+            sizeof(uint32_t),
+            vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc,
+            HostAccess::None);
+        m_frames[i].visibleReadback = Buffer(m_context.getAllocator(), 
+            m_context.getDevice(), 
+            sizeof(uint32_t),
+            vk::BufferUsageFlagBits::eTransferDst,
+            HostAccess::Readback);
     }
 
     // Create render finished semaphores
@@ -87,6 +97,7 @@ void Renderer::drawFrame(const Camera& camera, float dt, float totalTime, const 
     }
 
     m_profiler.collect(m_frameIndex);
+    frameData.visibleReadback.read(&m_visibleBlades, sizeof(uint32_t), 0);
 
     // Check for present mode changed
     vk::PresentModeKHR desiredPresentMode = renderSettings.bUseVsync ? vk::PresentModeKHR::eFifo : vk::PresentModeKHR::eImmediate;
@@ -149,6 +160,13 @@ void Renderer::drawFrame(const Camera& camera, float dt, float totalTime, const 
     });
 
     m_profiler.beginFrame(commandBuffer, m_frameIndex);
+
+    // Zero out the visible counter
+    commandBuffer.fillBuffer(frameData.visibleCounter.getBuffer(), 0, sizeof(uint32_t), 0);
+    memoryBarrier(commandBuffer, vk::PipelineStageFlagBits2::eTransfer,
+        vk::AccessFlagBits2::eTransferWrite,
+        vk::PipelineStageFlagBits2::eTaskShaderEXT,
+        vk::AccessFlagBits2::eShaderStorageRead | vk::AccessFlagBits2::eShaderStorageWrite);
 
     // - Run grass sim
     m_profiler.mark(commandBuffer, GpuTimestamp::SimStart);
@@ -237,7 +255,8 @@ void Renderer::drawFrame(const Camera& camera, float dt, float totalTime, const 
     m_profiler.mark(commandBuffer, GpuTimestamp::GrassStart);
     m_grass.draw(commandBuffer, 
         frameData.cameraBuffer.getDeviceAddress(), 
-        frameData.cullCameraBuffer.getDeviceAddress(), 
+        frameData.cullCameraBuffer.getDeviceAddress(),
+        frameData.visibleCounter.getDeviceAddress(), 
         renderSettings);
     m_profiler.mark(commandBuffer, GpuTimestamp::GrassEnd);
 
@@ -245,6 +264,23 @@ void Renderer::drawFrame(const Camera& camera, float dt, float totalTime, const 
     m_imGuiLayer.record(commandBuffer);
 
     commandBuffer.endRendering();
+
+    // Copy the visible blade count
+    memoryBarrier(commandBuffer, vk::PipelineStageFlagBits2::eTaskShaderEXT,
+        vk::AccessFlagBits2::eShaderStorageWrite,
+        vk::PipelineStageFlagBits2::eTransfer,
+        vk::AccessFlagBits2::eTransferRead);
+
+    commandBuffer.copyBuffer(frameData.visibleCounter.getBuffer(), frameData.visibleReadback.getBuffer(),
+        vk::BufferCopy{
+            .size = sizeof(uint32_t)
+        }
+    );
+
+    memoryBarrier(commandBuffer, vk::PipelineStageFlagBits2::eTransfer,
+        vk::AccessFlagBits2::eTransferWrite,
+        vk::PipelineStageFlagBits2::eHost,
+        vk::AccessFlagBits2::eHostRead);
 
     // - Convert to present mode
     transitionImage(commandBuffer, image,
@@ -338,6 +374,21 @@ void Renderer::transitionImage(const vk::raii::CommandBuffer &cmd, vk::Image ima
     cmd.pipelineBarrier2(vk::DependencyInfo{
         .imageMemoryBarrierCount = 1,
         .pImageMemoryBarriers = &barrier
+    });
+}
+
+void Renderer::memoryBarrier(const vk::raii::CommandBuffer &cmd, vk::PipelineStageFlags2 srcStage, vk::AccessFlags2 srcAccess, vk::PipelineStageFlags2 dstStage, vk::AccessFlags2 dstAccess)
+{
+    vk::MemoryBarrier2 barrier = {
+        .srcStageMask  = srcStage,
+        .srcAccessMask = srcAccess,
+        .dstStageMask  = dstStage,
+        .dstAccessMask = dstAccess,
+    };
+
+    cmd.pipelineBarrier2(vk::DependencyInfo{
+        .memoryBarrierCount = 1,
+        .pMemoryBarriers = &barrier
     });
 }
 

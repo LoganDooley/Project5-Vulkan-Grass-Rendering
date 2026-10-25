@@ -7,7 +7,7 @@ Buffer::Buffer(VmaAllocator allocator,
     const vk::raii::Device &device, 
     vk::DeviceSize size, 
     vk::BufferUsageFlags usage, 
-    bool hostVisible) :
+    HostAccess hostAccess) :
     m_allocator(allocator),
     m_size(size)
 {
@@ -19,9 +19,12 @@ Buffer::Buffer(VmaAllocator allocator,
     VmaAllocationCreateInfo allocInfo = {
         .usage = VMA_MEMORY_USAGE_AUTO
     };
-    if(hostVisible) {
+    if(hostAccess == HostAccess::Write) {
         allocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT |
             VMA_ALLOCATION_CREATE_MAPPED_BIT;
+    }
+    else if(hostAccess == HostAccess::Readback){
+        allocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
     }
 
     VmaAllocationInfo resultInfo{};
@@ -75,6 +78,13 @@ void Buffer::write(const void *data, vk::DeviceSize bytes, vk::DeviceSize offset
     }
     std::memcpy(static_cast<char*>(m_mapped) + offset, data, bytes);
     vmaFlushAllocation(m_allocator, m_allocation, offset, bytes);
+}
+
+void Buffer::read(void *dst, vk::DeviceSize bytes, vk::DeviceSize offset) const
+{
+    // First ensure gpu writes are visible on the cpu
+    vmaInvalidateAllocation(m_allocator, m_allocation, offset, bytes);
+    std::memcpy(dst, static_cast<const char*>(m_mapped) + offset, bytes);
 }
 
 void Buffer::destroy()

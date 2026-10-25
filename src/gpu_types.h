@@ -35,6 +35,7 @@ struct GrassDrawPushConstants {
     vk::DeviceAddress camera;
     vk::DeviceAddress cullCamera;
     vk::DeviceAddress blades;
+    vk::DeviceAddress visibleCounter;
     uint32_t bladeCount;
     uint32_t cullFlags;
     float distanceCullingMaxDistance;

@@ -34,7 +34,11 @@ void Grass::resize(float density, float radius)
     m_gridWidth = std::max(1u, (uint32_t)std::lround(2.0f * radius * std::sqrt(density)));
     m_bladeCount = m_gridWidth * m_gridWidth;
 
-    m_blades = Buffer(m_context.getAllocator(), m_context.getDevice(), m_bladeCount * sizeof(Blade), vk::BufferUsageFlagBits::eStorageBuffer, false);
+    m_blades = Buffer(m_context.getAllocator(), 
+        m_context.getDevice(), 
+        m_bladeCount * sizeof(Blade), 
+        vk::BufferUsageFlagBits::eStorageBuffer, 
+        HostAccess::None);
 }
 
 void Grass::recordInit(const vk::raii::CommandBuffer &cmd) const
@@ -105,13 +109,14 @@ void Grass::simulate(const vk::raii::CommandBuffer &cmd, float dt, float totalTi
     });
 }
 
-void Grass::draw(const vk::raii::CommandBuffer &cmd, vk::DeviceAddress cameraAddress, vk::DeviceAddress cullCameraAddress, const RenderSettings& renderSettings) const
+void Grass::draw(const vk::raii::CommandBuffer &cmd, vk::DeviceAddress cameraAddress, vk::DeviceAddress cullCameraAddress, vk::DeviceAddress visibleCounterAddress, const RenderSettings& renderSettings) const
 {
     cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *m_drawPipeline);
     GrassDrawPushConstants pc = {
         .camera = cameraAddress,
         .cullCamera = cullCameraAddress,
         .blades = m_blades.getDeviceAddress(),
+        .visibleCounter = visibleCounterAddress,
         .bladeCount = m_bladeCount,
         .cullFlags = renderSettings.getCullFlags(),
         .distanceCullingMaxDistance = renderSettings.distanceCullingMaxDistance

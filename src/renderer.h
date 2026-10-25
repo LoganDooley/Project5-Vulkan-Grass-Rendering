@@ -25,6 +25,8 @@ struct FrameData {
     vk::raii::Fence inFlightFence{nullptr};
     Buffer cameraBuffer;
     Buffer cullCameraBuffer;
+    Buffer visibleCounter; // Device-only
+    Buffer visibleReadback;
 };
 
 class Renderer {
@@ -42,6 +44,7 @@ public:
     const GpuTimings& getGpuTimings() const { return m_profiler.getTimings(); }
 
     uint32_t getBladeCount() const { return m_grass.getBladeCount(); }
+    uint32_t getVisibleBladeCount() const { return m_visibleBlades; }
 
 private:
     static void transitionImage(const vk::raii::CommandBuffer& cmd,
@@ -50,6 +53,10 @@ private:
         vk::PipelineStageFlags2 srcStage, vk::AccessFlags2 srcAccess,
         vk::PipelineStageFlags2 dstStage, vk::AccessFlags2 dstAccess,
         vk::ImageAspectFlags aspect);
+    
+    static void memoryBarrier(const vk::raii::CommandBuffer& cmd,
+        vk::PipelineStageFlags2 srcStage, vk::AccessFlags2 srcAccess,
+        vk::PipelineStageFlags2 dstStage, vk::AccessFlags2 dstAccess);
 
     void recreateSwapchain();
 
@@ -71,4 +78,5 @@ private:
     GpuProfiler m_profiler;
     CameraData m_frozenCullCamera{};
     bool m_cullCameraFrozen = false;
+    uint32_t m_visibleBlades = 0;
 };

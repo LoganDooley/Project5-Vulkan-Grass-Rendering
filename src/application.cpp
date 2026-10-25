@@ -92,6 +92,7 @@ void Application::run() {
         m_frameStats.gpuTotalMs = gpuTimings.totalMs;
 
         m_frameStats.bladeCount = m_renderer.getBladeCount();
+        m_frameStats.visibleBladeCount = m_renderer.getVisibleBladeCount();
 
         m_window.endFrame();
     }

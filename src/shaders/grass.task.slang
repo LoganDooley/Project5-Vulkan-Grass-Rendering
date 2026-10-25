@@ -91,5 +91,9 @@ void taskMain(uint3 groupId: SV_GroupID,
     // Wait for group payload to be done
     GroupMemoryBarrierWithGroupSync();
 
+    if (localIndex == 0) {
+        InterlockedAdd(*pc.visibleCounter, visibleCount);
+    }
+
     DispatchMesh(visibleCount, 1, 1, payload); // One per visible blade
 }

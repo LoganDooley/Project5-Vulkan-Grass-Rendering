@@ -20,7 +20,7 @@ public:
 
     void recordInit(const vk::raii::CommandBuffer& cmd) const;
     void simulate(const vk::raii::CommandBuffer& cmd, float dt, float totalTime, const RenderSettings& renderSettings) const;
-    void draw(const vk::raii::CommandBuffer& cmd, vk::DeviceAddress cameraAddress, vk::DeviceAddress cullCameraAddress, const RenderSettings& renderSettings) const;
+    void draw(const vk::raii::CommandBuffer& cmd, vk::DeviceAddress cameraAddress, vk::DeviceAddress cullCameraAddress, vk::DeviceAddress visibleCounterAddress, const RenderSettings& renderSettings) const;
 
     float getDensity() const { return m_density; }
     float getRadius() const { return m_radius; }

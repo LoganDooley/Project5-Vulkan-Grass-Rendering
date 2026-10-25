@@ -5,11 +5,15 @@
 
 #include <utility>
 
+enum class HostAccess {
+    None, Write, Readback
+};
+
 class Buffer {
 public:
     Buffer() = default;
     Buffer(VmaAllocator allocator, const vk::raii::Device& device,
-        vk::DeviceSize size, vk::BufferUsageFlags usage, bool hostVisible);
+        vk::DeviceSize size, vk::BufferUsageFlags usage, HostAccess hostAccess);
     ~Buffer();
 
     Buffer(const Buffer&) = delete;
@@ -24,6 +28,7 @@ public:
     void* getMappedData() const { return m_mapped; }
     
     void write(const void* data, vk::DeviceSize bytes, vk::DeviceSize offset = 0);
+    void read(void* dst, vk::DeviceSize bytes, vk::DeviceSize offset) const;
 
 private:
     void destroy();
