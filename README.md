@@ -68,11 +68,34 @@ This project does not use descriptor sets, so shaders can access this data throu
 
 ## Progress
 ### 1. Static blades
+![Static blades](img/static_blades.gif)
+
+Just blade placement and triangulation using a mesh shader.
+
 ### 2. Gravity + recovery
+![Gravity and recovery](img/gravity_sim.gif)
+
+Adding gravity and recovery forces to the blades.
+
 ### 3. Wind
+![Wind](img/wind.gif)
+
+Adding steady wind + sinusoidal gusts.
+
 ### 4. Orientation culling
+![Orientation culling](img/orientation_culling.gif)
+
+Orientation culling enabled/disabled
+
 ### 5. Frustum culling
+![Frustum culling](img/frustum_culling.gif)
+
+Frustum culling with the culling camera frozen
+
 ### 6. Distance culling
+![Distance culling](img/distance_culling.gif)
+
+Distance culling at increasing distances
 
 ## Implementation notes
 Using v-sync with a 240 Hz monitor causes frame rates to oscillate back and forth because frames are presented in pairs. The CPU waits for one image, and the next image is already free so the time waiting on the next swapchain image alternates between virtually instantaneous and having some wait time. As a workaround, I added an exponential moving average smoothed version of delta time to pass into the simulation shader so the simulation would be smoother.
