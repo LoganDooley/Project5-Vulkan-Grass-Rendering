@@ -42,7 +42,6 @@ void Application::run() {
             m_cpuAccumulatedFrames = 0;
         }
 
-
         if(m_window.isKeyDown(GLFW_KEY_ESCAPE)) {
             m_window.requestClose();
         }
@@ -86,6 +85,11 @@ void Application::run() {
 
         // Do rendering
         m_renderer.drawFrame(m_camera, m_smoothDt, totalTime, m_renderSettings);
+
+        const GpuTimings& gpuTimings = m_renderer.getGpuTimings();
+        m_frameStats.gpuSimMs = gpuTimings.simMs;
+        m_frameStats.gpuGrassMs = gpuTimings.grassMs;
+        m_frameStats.gpuTotalMs = gpuTimings.totalMs;
 
         m_window.endFrame();
     }

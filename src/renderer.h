@@ -8,6 +8,7 @@
 #include "image.h"
 #include "grass.h"
 #include "imgui_layer.h"
+#include "gpu_profiler.h"
 
 #include <array>
 #include <vector>
@@ -36,6 +37,7 @@ public:
     void drawFrame(const Camera& camera, float dt, float totalTime, const RenderSettings& renderSettings);
 
     ImGuiLayer& getImGuiLayer() { return m_imGuiLayer; }
+    const GpuTimings& getGpuTimings() const { return m_profiler.getTimings(); }
 
 private:
     static void transitionImage(const vk::raii::CommandBuffer& cmd,
@@ -76,4 +78,5 @@ private:
     vk::ShaderStageFlags m_pcStages;
     Buffer m_positionsBuffer;
     Grass m_grass;
+    GpuProfiler m_profiler;
 };

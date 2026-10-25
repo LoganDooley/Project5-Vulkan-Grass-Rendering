@@ -26,7 +26,8 @@ Renderer::Renderer(const VulkanContext &context, Window &window) :
         m_swapchain.getImageCount(), 
         m_swapchain.getFormat(), 
         m_depthImage.getFormat()),
-    m_grass(m_context, 1u << 20, 100.0f, m_swapchain.getFormat(), m_depthImage.getFormat())
+    m_grass(m_context, 1u << 20, 100.0f, m_swapchain.getFormat(), m_depthImage.getFormat()),
+    m_profiler(context, static_cast<uint32_t>(m_frames.size()))
 {
     // Create command pool
     vk::CommandPoolCreateInfo commandPoolCreateInfo = {
@@ -92,6 +93,8 @@ void Renderer::drawFrame(const Camera& camera, float dt, float totalTime, const 
         throw std::runtime_error("Wait for in flight fence failed!");
     }
 
+    m_profiler.collect(m_frameIndex);
+
     // Check for present mode changed
     vk::PresentModeKHR desiredPresentMode = renderSettings.bUseVsync ? vk::PresentModeKHR::eFifo : vk::PresentModeKHR::eImmediate;
     if(desiredPresentMode != m_presentMode){
@@ -131,6 +134,8 @@ void Renderer::drawFrame(const Camera& camera, float dt, float totalTime, const 
         .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit
     });
 
+    m_profiler.beginFrame(commandBuffer, m_frameIndex);
+
     // - Wait for mesh shader before we overwrite
     vk::MemoryBarrier2 readBeforeWrite = {
         .srcStageMask  = vk::PipelineStageFlagBits2::eTaskShaderEXT | vk::PipelineStageFlagBits2::eMeshShaderEXT,
@@ -166,9 +171,11 @@ void Renderer::drawFrame(const Camera& camera, float dt, float totalTime, const 
     });
 
     // - Run grass sim
+    m_profiler.mark(commandBuffer, GpuTimestamp::SimStart);
     if(renderSettings.bSimulate){
         m_grass.simulate(commandBuffer, dt, totalTime, renderSettings);
     }
+    m_profiler.mark(commandBuffer, GpuTimestamp::SimEnd);
 
     // - Prepare image to be cleared
     transitionImage(commandBuffer, image, 
@@ -255,7 +262,9 @@ void Renderer::drawFrame(const Camera& camera, float dt, float totalTime, const 
     commandBuffer.drawMeshTasksEXT(1, 1, 1);
 
     // Run grass pipeline
+    m_profiler.mark(commandBuffer, GpuTimestamp::GrassStart);
     m_grass.draw(commandBuffer, frameData.cameraBuffer.getDeviceAddress(), renderSettings);
+    m_profiler.mark(commandBuffer, GpuTimestamp::GrassEnd);
 
     // Run triangle pipeline
     commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *m_trianglePipeline);
@@ -274,6 +283,7 @@ void Renderer::drawFrame(const Camera& camera, float dt, float totalTime, const 
         vk::PipelineStageFlagBits2::eBottomOfPipe, vk::AccessFlagBits2::eNone,
         vk::ImageAspectFlagBits::eColor);
 
+    m_profiler.mark(commandBuffer, GpuTimestamp::FrameEnd);
     commandBuffer.end();
 
     // Submit command buffer
@@ -301,6 +311,7 @@ void Renderer::drawFrame(const Camera& camera, float dt, float totalTime, const 
     };
 
     m_context.getQueue().submit2(submitInfo, *frameData.inFlightFence);
+    m_profiler.endFrame();
 
     // Present to swapchain
     vk::SwapchainKHR swapchain = *m_swapchain.getSwapchain();
