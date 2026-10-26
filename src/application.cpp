@@ -63,6 +63,7 @@ void Application::run() {
                 if (m_window.isMouseDown(GLFW_MOUSE_BUTTON_RIGHT)) {
                     input.look = glm::vec2(m_window.getMouseDelta());
                 }
+                input.speedSteps = static_cast<float>(m_window.getScrollDelta());
             }
             if(!io.WantCaptureKeyboard) {
                 if (m_window.isKeyDown(GLFW_KEY_W)) {

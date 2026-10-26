@@ -42,6 +42,11 @@ Window::Window(int width, int height, const char* title) {
             window->m_previousMousePos = glm::dvec2(x, y);
         }
     });
+
+    glfwSetScrollCallback(m_glfwWindow, [](GLFWwindow* w, double, double yOffset) {
+        Window* window = static_cast<Window*>(glfwGetWindowUserPointer(w));
+        window->m_scrollDelta += yOffset;
+    });
 }
 
 Window::~Window() {
@@ -56,6 +61,7 @@ Window::Window(Window&& other) noexcept :
     m_resized(std::exchange(other.m_resized, false)),
     m_previousMousePos(std::exchange(other.m_previousMousePos, glm::dvec2(0.0))),
     m_mouseDelta(std::exchange(other.m_mouseDelta, glm::dvec2(0.0))),
+    m_scrollDelta(std::exchange(other.m_scrollDelta, 0.0)),
     m_mouseInitialized(std::exchange(other.m_mouseInitialized, false))
 {
     if (m_glfwWindow) {
@@ -76,6 +82,7 @@ Window& Window::operator=(Window&& other) noexcept {
         m_resized = std::exchange(other.m_resized, false);
         m_previousMousePos = std::exchange(other.m_previousMousePos, glm::dvec2(0.0));
         m_mouseDelta = std::exchange(other.m_mouseDelta, glm::dvec2(0.0));
+        m_scrollDelta = std::exchange(other.m_scrollDelta, 0.0);
         m_mouseInitialized = std::exchange(other.m_mouseInitialized, false);
     }
     return *this;
@@ -91,6 +98,7 @@ void Window::pollEvents() {
 
 void Window::endFrame() {
     m_mouseDelta = glm::dvec2(0.0);
+    m_scrollDelta = 0.0;
 }
 
 bool Window::isKeyDown(int key) const {

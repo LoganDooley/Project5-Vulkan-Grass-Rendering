@@ -11,6 +11,10 @@ Camera::Camera(glm::vec3 position) :
 
 void Camera::update(float dt, const CameraInput &input)
 {
+    // Adjust speed
+    m_moveSpeed *= std::pow(1.2f, input.speedSteps);
+    m_moveSpeed = glm::clamp(m_moveSpeed, 0.1f, 1000.0f);
+
     // Rotate
     m_yaw += input.look.x * m_lookSpeed;
     m_pitch -= input.look.y * m_lookSpeed;

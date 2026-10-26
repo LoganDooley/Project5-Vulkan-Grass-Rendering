@@ -27,6 +27,8 @@ public:
     void clearResized() { m_resized = false; }
 
     glm::dvec2 getMouseDelta() const { return m_mouseDelta; }
+    double getScrollDelta() const { return m_scrollDelta; }
+
     void endFrame();
 
     bool isKeyDown(int key) const;
@@ -50,5 +52,6 @@ private:
     bool m_resized = false;
     glm::dvec2 m_previousMousePos = glm::dvec2(0.0);
     glm::dvec2 m_mouseDelta = glm::dvec2(0.0);
+    double m_scrollDelta = 0.0;
     bool m_mouseInitialized = false;
 };

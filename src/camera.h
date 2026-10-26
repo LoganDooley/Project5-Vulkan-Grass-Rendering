@@ -8,6 +8,7 @@
 struct CameraInput {
     glm::vec3 move = glm::vec3(0.0f);
     glm::vec2 look = glm::vec2(0.0f);
+    float speedSteps = 0.0f;
 };
 
 class Camera {
