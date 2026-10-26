@@ -1,5 +1,7 @@
 #include "heightmap_terrain.h"
 
+#include <glm/common.hpp>
+
 #include "vulkan_context.h"
 #include "gpu_types.h"
 #include "shader_utils.h"
@@ -8,13 +10,19 @@
 
 static constexpr vk::ShaderStageFlags stageFlags = vk::ShaderStageFlagBits::eMeshEXT | vk::ShaderStageFlagBits::eFragment;
 static constexpr float PATCH_SIZE = 8.0f;
-static constexpr int PATCHES_PER_SIDE = 25;
+static constexpr int PATCHES_PER_SIDE = 64;
 
 HeightmapTerrain::HeightmapTerrain(const VulkanContext &context, vk::Format colorFormat, vk::Format depthFormat) :
     m_context(context)
 {
     createPipelineLayout();
     createPipeline(colorFormat, depthFormat);
+}
+
+void HeightmapTerrain::update(const vk::raii::CommandBuffer &cmd, const glm::vec3 &cameraPos)
+{
+    glm::vec2 cameraXZ(cameraPos.x, cameraPos.z);
+    m_center = glm::floor(cameraXZ / PATCH_SIZE) * PATCH_SIZE;
 }
 
 void HeightmapTerrain::draw(const vk::raii::CommandBuffer &cmd, vk::DeviceAddress cameraAddress) const
@@ -24,7 +32,7 @@ void HeightmapTerrain::draw(const vk::raii::CommandBuffer &cmd, vk::DeviceAddres
     float half = 0.5 * PATCH_SIZE * PATCHES_PER_SIDE;
     HeightmapPushConstants pc = {
         .camera = cameraAddress,
-        .origin = glm::vec2(-half, -half),
+        .origin = m_center - glm::vec2(half),
         .patchSize = PATCH_SIZE,
         .patchesPerSide = PATCHES_PER_SIDE
     };
