@@ -82,6 +82,7 @@ Renderer::Renderer(const VulkanContext &context, Window &window, const RenderSet
     }
 
     // Perform grass init immediately
+    m_grass.setTerrainType(renderSettings.terrainType);
     m_context.submitImmediate([&](const vk::raii::CommandBuffer& cmd) {
         m_grass.recordInit(cmd);
     });
@@ -107,10 +108,15 @@ void Renderer::drawFrame(const Camera& camera, float dt, float totalTime, const 
     }
 
     // Check for the grass density changing
-    if(renderSettings.grassDensity != m_grass.getDensity() || 
-        renderSettings.grassRadius != m_grass.getRadius()){
+    bool resize = renderSettings.grassDensity != m_grass.getDensity() || 
+        renderSettings.grassRadius != m_grass.getRadius();
+    bool reinit = resize || renderSettings.terrainType != m_grass.getTerrainType();
+    if(reinit){
         m_context.getDevice().waitIdle();
-        m_grass.resize(renderSettings.grassDensity, renderSettings.grassRadius);
+        if(resize){
+            m_grass.resize(renderSettings.grassDensity, renderSettings.grassRadius);
+        }
+        m_grass.setTerrainType(renderSettings.terrainType);
         m_context.submitImmediate([&](const vk::raii::CommandBuffer& cmd){
             m_grass.recordInit(cmd);
         });

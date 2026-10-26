@@ -50,7 +50,8 @@ void Grass::recordInit(const vk::raii::CommandBuffer &cmd) const
         .bladeCount = m_bladeCount,
         .gridWidth = m_gridWidth,
         .areaSize = 2 * m_radius,
-        .seed = 1234
+        .seed = 1234,
+        .terrainType = static_cast<uint32_t>(m_terrainType)
     };
     cmd.pushConstants<GrassInitPushConstants>(*m_initPipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, pc);
     cmd.dispatch((m_bladeCount + 63) / 64, 1, 1);

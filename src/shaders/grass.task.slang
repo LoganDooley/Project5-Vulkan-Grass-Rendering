@@ -78,7 +78,7 @@ void taskMain(uint3 groupId: SV_GroupID,
         float orientation = blade.v0.w;
         float width = blade.v2.w;
 
-        bool visible = passesOrientation(orientation, v0) && passesFrustum(v0, v1, v2) && passesDistance(v0, up, bladeIndex);
+        bool visible = blade.v1.w > 0.0 && passesOrientation(orientation, v0) && passesFrustum(v0, v1, v2) && passesDistance(v0, up, bladeIndex);
         if (visible) {
             uint slot;
             // Increment visibleCount atomically

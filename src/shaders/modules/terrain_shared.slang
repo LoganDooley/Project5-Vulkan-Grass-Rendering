@@ -2,9 +2,15 @@ module terrain_shared;
 
 import common;
 
+public static const uint TERRAIN_PLANE = 0;
+public static const uint TERRAIN_HEIGHTMAP = 1;
+
 static const int OCTAVES = 4;
 static const float TERRAIN_AMPLITUDE = 25.0f;
 static const float TERRAIN_SCALE = 80.0f;
+
+public static const float GRASS_SLOPE_FULL_COS = 0.91;
+public static const float GRASS_SLOPE_NONE_COS = 0.85;
 
 float hash2(int2 p) {
     uint h = pcgHash(uint(p.x) ^ pcgHash(uint(p.y)));

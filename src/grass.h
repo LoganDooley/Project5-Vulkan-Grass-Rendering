@@ -7,6 +7,8 @@
 class VulkanContext;
 struct RenderSettings;
 
+enum class TerrainType : uint32_t;
+
 class Grass {
 public:
     Grass(const VulkanContext& context, float density, float radius, vk::Format colorFormat, vk::Format depthFormat);
@@ -25,6 +27,9 @@ public:
     float getDensity() const { return m_density; }
     float getRadius() const { return m_radius; }
     uint32_t getBladeCount() const { return m_bladeCount; }
+
+    void setTerrainType(TerrainType terrainType) { m_terrainType = terrainType; }
+    TerrainType getTerrainType() const { return m_terrainType; }
 
 private:
     void createInitPipelineLayout();
@@ -47,4 +52,5 @@ private:
     vk::raii::Pipeline m_drawPipeline{nullptr};
     vk::raii::PipelineLayout m_simPipelineLayout{nullptr};
     vk::raii::Pipeline m_simPipeline{nullptr};
+    TerrainType m_terrainType{};
 };

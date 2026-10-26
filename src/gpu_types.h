@@ -29,6 +29,7 @@ struct GrassInitPushConstants {
     uint32_t gridWidth;
     float areaSize;
     uint32_t seed;
+    uint32_t terrainType;
 };
 
 struct GrassDrawPushConstants {

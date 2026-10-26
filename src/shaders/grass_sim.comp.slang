@@ -88,6 +88,10 @@ void computeMain(uint3 threadId: SV_DispatchThreadID)
     float h = blade.v1.w;
     float s = blade.up.w;
 
+    if (h <= 0.0) {
+        return;
+    }
+
     float3 t1 = float3(cos(orientation), 0.0, sin(orientation));
     float3 f = normalize(cross(up, t1));
 

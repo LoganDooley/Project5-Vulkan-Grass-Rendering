@@ -11,10 +11,11 @@ public struct Blade {
 
 public struct GrassInitPushConstants {
     public Blade *blades;
-    public uint32_t bladeCount;
-    public uint32_t gridWidth;
+    public uint bladeCount;
+    public uint gridWidth;
     public float areaSize;
-    public uint32_t seed;
+    public uint seed;
+    public uint terrainType;
 };
 
 public struct GrassDrawPushConstants {

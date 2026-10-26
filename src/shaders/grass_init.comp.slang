@@ -1,6 +1,7 @@
 import common;
 
 import grass_shared;
+import terrain_shared;
 
 [[vk::push_constant]] GrassInitPushConstants pc;
 
@@ -29,14 +30,22 @@ void computeMain(uint3 threadId : SV_DispatchThreadID)
     float2 jitter = float2(random01(rng), random01(rng));
     float2 xz = (cell + jitter) * cellSize - 0.5 * pc.areaSize;
 
-    // Root is at y = 0
-    float3 root = float3(xz.x, 0.0, xz.y);
+    float y = (pc.terrainType == TERRAIN_HEIGHTMAP) ? terrainHeight(xz) : 0.0;
+    float3 root = float3(xz.x, y, xz.y);
     // Y is up
     float3 up = float3(0.0, 1.0, 0.0);
 
+    bool bActive = true;
+    if (pc.terrainType == TERRAIN_HEIGHTMAP) {
+        // Check for slope rejection
+        float slopeCos = terrainNormal(xz).y;
+        float keep = smoothstep(GRASS_SLOPE_NONE_COS, GRASS_SLOPE_FULL_COS, slopeCos);
+        bActive = random01(rng) < keep;
+    }
+
     // Pick random properties
     float orientation = random01(rng) * 3.14159 * 2.0;
-    float height = lerp(MIN_HEIGHT, MAX_HEIGHT, random01(rng));
+    float height = bActive ? lerp(MIN_HEIGHT, MAX_HEIGHT, random01(rng)) : 0.0;
     float width = lerp(MIN_WIDTH, MAX_WIDTH, random01(rng));
     float stiffness = lerp(MIN_STIFF, MAX_STIFF, random01(rng));
 
