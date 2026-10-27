@@ -9,8 +9,8 @@
 #include "render_settings.h"
 
 static constexpr vk::ShaderStageFlags stageFlags = vk::ShaderStageFlagBits::eMeshEXT | vk::ShaderStageFlagBits::eFragment;
-static constexpr float PATCH_SIZE = 8.0f;
-static constexpr int PATCHES_PER_SIDE = 64;
+static constexpr float PATCH_SIZE = 16.0f;
+static constexpr int PATCHES_PER_SIDE = 160;
 
 HeightmapTerrain::HeightmapTerrain(const VulkanContext &context, vk::Format colorFormat, vk::Format depthFormat) :
     m_context(context)
