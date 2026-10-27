@@ -39,7 +39,7 @@ bool Benchmark::update(const FrameStats &stats, RenderSettings &settings, Camera
         settings.bSimulate = true;
         settings.bFreezeCulling = false;
         settings.grassRadius = 100.0f;
-
+        settings.bGrassFollowsCamera = false;
         settings.grassDensity = run.density;
         settings.bOrientationCullingEnabled = run.bOrientationCullingEnabled;
         settings.bFrustumCullingEnabled = run.bFrustumCullingEnabled;

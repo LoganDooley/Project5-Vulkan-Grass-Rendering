@@ -30,6 +30,7 @@ void SettingsUI::drawSettingsPanel(RenderSettings &renderSettings, const FrameSt
     }
 
     if(ImGui::CollapsingHeader("Grass Settings", ImGuiTreeNodeFlags_DefaultOpen)){
+        ImGui::Checkbox("Grass Follows Camera", &renderSettings.bGrassFollowsCamera);
         ImGui::SliderFloat("Density (blades/m²)", &renderSettings.grassDensity, 1.0f, 400.0f, "%.0f", ImGuiSliderFlags_Logarithmic);
         ImGui::SliderFloat("Radius (m)", &renderSettings.grassRadius, 5.0f, 200.0f, "%.0f");
         ImGui::Text("Blades: %u (%.1f MB)", stats.bladeCount, stats.bladeCount * 64.0f / (1024.0f * 1024.0f));

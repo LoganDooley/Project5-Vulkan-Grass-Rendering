@@ -43,11 +43,18 @@ void Grass::resize(float density, float radius)
     m_needsFullInit = true;
 }
 
-void Grass::update(const vk::raii::CommandBuffer &cmd, glm::vec3 cameraPos)
+void Grass::update(const vk::raii::CommandBuffer &cmd, glm::vec3 cameraPos, bool bFollowCamera)
 {
     float cellSize = 2.0f * m_radius / m_gridWidth;
-    glm::ivec2 cameraCell = glm::ivec2(glm::floor(glm::vec2(cameraPos.x, cameraPos.z) / cellSize));
-    glm::ivec2 newBase = cameraCell - glm::ivec2(m_gridWidth / 2);
+
+    glm::ivec2 newBase;
+    if(bFollowCamera) {
+        glm::ivec2 cameraCell = glm::ivec2(glm::floor(glm::vec2(cameraPos.x, cameraPos.z) / cellSize));
+        newBase = cameraCell - glm::ivec2(m_gridWidth / 2);
+    }
+    else{
+        newBase = -glm::ivec2(m_gridWidth / 2); // Fixed on origin
+    }
 
     if(!m_needsFullInit && newBase == m_base) {
         return;

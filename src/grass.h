@@ -22,7 +22,7 @@ public:
 
     void resize(float density, float radius);
 
-    void update(const vk::raii::CommandBuffer& cmd, glm::vec3 cameraPos);
+    void update(const vk::raii::CommandBuffer& cmd, glm::vec3 cameraPos, bool bFollowCamera);
     void simulate(const vk::raii::CommandBuffer& cmd, float dt, float totalTime, const RenderSettings& renderSettings) const;
     void draw(const vk::raii::CommandBuffer& cmd, vk::DeviceAddress cameraAddress, vk::DeviceAddress cullCameraAddress, vk::DeviceAddress visibleCounterAddress, const RenderSettings& renderSettings) const;
 

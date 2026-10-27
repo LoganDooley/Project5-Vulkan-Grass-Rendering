@@ -172,7 +172,7 @@ void Renderer::drawFrame(const Camera& camera, float dt, float totalTime, const 
         vk::AccessFlagBits2::eShaderStorageRead | vk::AccessFlagBits2::eShaderStorageWrite);
 
     // Update grass
-    m_grass.update(commandBuffer, camera.getPosition());
+    m_grass.update(commandBuffer, camera.getPosition(), renderSettings.bGrassFollowsCamera);
 
     // - Run grass sim
     m_profiler.mark(commandBuffer, GpuTimestamp::SimStart);

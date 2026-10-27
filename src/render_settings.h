@@ -26,6 +26,7 @@ struct RenderSettings {
     float gravity = 9.8f;
 
     // Grass Settings
+    bool bGrassFollowsCamera = false;
     float grassDensity = 25.0f;
     float grassRadius = 100.0f;
 
