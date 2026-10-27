@@ -19,7 +19,7 @@ HeightmapTerrain::HeightmapTerrain(const VulkanContext &context, vk::Format colo
     createPipeline(colorFormat, depthFormat);
 }
 
-void HeightmapTerrain::update(const vk::raii::CommandBuffer &cmd, const glm::vec3 &cameraPos)
+void HeightmapTerrain::update(const vk::raii::CommandBuffer &/*cmd*/, const glm::vec3 &cameraPos)
 {
     glm::vec2 cameraXZ(cameraPos.x, cameraPos.z);
     m_center = glm::floor(cameraXZ / PATCH_SIZE) * PATCH_SIZE;

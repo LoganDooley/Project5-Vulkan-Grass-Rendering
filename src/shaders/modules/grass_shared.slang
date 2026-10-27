@@ -9,13 +9,18 @@ public struct Blade {
     public float4 up;
 };
 
-public struct GrassInitPushConstants {
+public struct GrassUpdatePushConstants {
     public Blade *blades;
+    public int2 base; // Coordnate of first grass cell in world space
+    public int2 prevBase; // Coordinate of first grass cell last frame
+    public int2 baseMod; // base % gridWidth. This is passed from the CPU since negative mod is defined in c++
+    public int2 prevBaseMod; // prevBase % gridWidth
     public uint bladeCount;
-    public uint gridWidth;
-    public float areaSize;
+    public uint gridWidth; // How many cells there are per side
+    public float cellSize; // Each cell holds one blade
     public uint seed;
     public uint terrainType;
+    public uint forceAll; // (boolean) forces all cells to reinitialize
 };
 
 public struct GrassDrawPushConstants {

@@ -81,11 +81,8 @@ Renderer::Renderer(const VulkanContext &context, Window &window, const RenderSet
         m_renderFinishedSemaphores.emplace_back(context.getDevice(), semaphoreCreateInfo);
     }
 
-    // Perform grass init immediately
+    // Set terrain type
     m_grass.setTerrainType(renderSettings.terrainType);
-    m_context.submitImmediate([&](const vk::raii::CommandBuffer& cmd) {
-        m_grass.recordInit(cmd);
-    });
 }
 
 void Renderer::drawFrame(const Camera& camera, float dt, float totalTime, const RenderSettings& renderSettings)
@@ -117,9 +114,6 @@ void Renderer::drawFrame(const Camera& camera, float dt, float totalTime, const 
             m_grass.resize(renderSettings.grassDensity, renderSettings.grassRadius);
         }
         m_grass.setTerrainType(renderSettings.terrainType);
-        m_context.submitImmediate([&](const vk::raii::CommandBuffer& cmd){
-            m_grass.recordInit(cmd);
-        });
     }
 
     // Check for the terrain type changing
@@ -176,6 +170,9 @@ void Renderer::drawFrame(const Camera& camera, float dt, float totalTime, const 
         vk::AccessFlagBits2::eTransferWrite,
         vk::PipelineStageFlagBits2::eTaskShaderEXT,
         vk::AccessFlagBits2::eShaderStorageRead | vk::AccessFlagBits2::eShaderStorageWrite);
+
+    // Update grass
+    m_grass.update(commandBuffer, camera.getPosition());
 
     // - Run grass sim
     m_profiler.mark(commandBuffer, GpuTimestamp::SimStart);

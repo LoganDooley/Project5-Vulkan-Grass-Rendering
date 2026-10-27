@@ -23,13 +23,18 @@ struct Blade {
 };
 static_assert(sizeof(Blade) == 64, "Blade must match the Slang struct");
 
-struct GrassInitPushConstants {
+struct GrassUpdatePushConstants {
     vk::DeviceAddress blades;
+    glm::ivec2 base;
+    glm::ivec2 prevBase;
+    glm::ivec2 baseMod;
+    glm::ivec2 prevBaseMod;
     uint32_t bladeCount;
     uint32_t gridWidth;
-    float areaSize;
+    float cellSize;
     uint32_t seed;
     uint32_t terrainType;
+    uint32_t forceAll;
 };
 
 struct GrassDrawPushConstants {

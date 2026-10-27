@@ -3,7 +3,7 @@ import common;
 import grass_shared;
 import terrain_shared;
 
-[[vk::push_constant]] GrassInitPushConstants pc;
+[[vk::push_constant]] GrassUpdatePushConstants pc;
 
 static const float MIN_HEIGHT = 0.6;
 static const float MAX_HEIGHT = 1.2;
@@ -12,23 +12,47 @@ static const float MAX_WIDTH = 0.05;
 static const float MIN_STIFF = 20.0;
 static const float MAX_STIFF = 25.0;
 
+int wrapOffset(int slot, int baseMod, int W) {
+    // Get offset from the base cell
+    int d = slot - baseMod;
+    return d < 0 ? d + W : d;
+}
+
+int2 slotToCell(int2 slot, int2 base, int2 baseMod, int W) {
+    // Find what world space cell a slot corresponds to
+    return base + int2(wrapOffset(slot.x, baseMod.x, W), wrapOffset(slot.y, baseMod.y, W));
+}
+
 [shader("compute")]
 [numthreads(64, 1, 1)]
 void computeMain(uint3 threadId : SV_DispatchThreadID)
 {
+    // Global thread index
     uint i = threadId.x;
     if (i >= pc.bladeCount) {
         return;
     }
 
-    // Create a pcg hash based on the index and seed
-    uint rng = pcgHash(i ^ pc.seed);
+    int W = int(pc.gridWidth);
+    // Find slot in grass blades
+    int2 slot = int2(int(i) % W, int(i) / W);
+    // Find world space cell
+    int2 cell = slotToCell(slot, pc.base, pc.baseMod, W);
+
+    if (pc.forceAll == 0) {
+        // Check if cell hasn't changed, in which case we don't need to do anything
+        int2 prevCell = slotToCell(slot, pc.prevBase, pc.prevBaseMod, W);
+        if (all(prevCell == cell)) {
+            return;
+        }
+    }
+
+    // Create a pcg hash based on the cell and seed
+    uint rng = pcgHash(uint(cell.x) ^ pcgHash(uint(cell.y) ^ pc.seed));
 
     // Stratified random sampling for position
-    float cellSize = pc.areaSize / float(pc.gridWidth);
-    float2 cell = float2(float(i % pc.gridWidth), float(i / pc.gridWidth));
     float2 jitter = float2(random01(rng), random01(rng));
-    float2 xz = (cell + jitter) * cellSize - 0.5 * pc.areaSize;
+    float2 xz = (float2(cell) + jitter) * pc.cellSize;
 
     float y = (pc.terrainType == TERRAIN_HEIGHTMAP) ? terrainHeight(xz) : 0.0;
     float3 root = float3(xz.x, y, xz.y);
