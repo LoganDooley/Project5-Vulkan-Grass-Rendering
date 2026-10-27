@@ -7,6 +7,8 @@ Vulkan Grass Rendering
   * [LinkedIn](https://www.linkedin.com/in/logan-dooley-a205a619a/)
 * Tested on: Windows 11, AMD Ryzen 7 9800X3D, 32GB RAM, NVIDIA GeForce RTX 5060 Ti 16GB
 
+![Grassy Mountains](img/grassy_mountains.gif)
+
 ## Overview
 Real-time grass using Vulkan compute and mesh shaders. Based on the paper, [Responsive Real-Time Grass Rendering for General 3D Scenes](https://www.cg.tuwien.ac.at/research/publications/2017/JAHRMANN-2017-RRTG/JAHRMANN-2017-RRTG-draft.pdf).
 Compute shaders are used for blade placement and simulation, while task and mesh shaders are used for culling and blade mesh generation.
@@ -32,6 +34,7 @@ Compute shaders are used for blade placement and simulation, while task and mesh
 - ImGui panel: live culling/physics/density controls, GPU timestamp profiler [Extra Credit]
 - Benchmark mode
 - Visible blade readback/counter
+- Terrain generation
 
 ## Pipeline
 All blade data lives in one GPU-only buffer which is 64 bytes per blade: 
@@ -96,6 +99,26 @@ Frustum culling with the culling camera frozen
 ![Distance culling](img/distance_culling.gif)
 
 Distance culling at increasing distances
+
+## Terrain and Infinite Grass (Bonus)
+I decided to add terrain to the project to give the grass a more interesting environment to be in. The ImGui window has a terrain mode dropdown that is on "Plane" mode by default, but can be switched to "Heightmap" for the mountain/valley generation I added. There is also a "Voxel" mode, which I intend to add in the future, but does not do anything at the moment.
+
+![Grassy Mountains](img/grassy_mountains.gif)
+
+### Heightmap terrain
+The heightmap terrain is done entirely through a mesh shader, which builds it out of patches w/ one workgroup per patch. Every vertex calls the same `terrainHeight(xz)` function, and the grass placement shader calls that function too, so the grass sits on the ground.
+
+The patch grid is set to 160×160 patches of 16 m each, and it snaps to the camera as it moves, but in discrete steps so the terrain stays steady. 
+
+### Grass placement
+Each blade's root is placed at `terrainHeight(xz)`, but past 25° ground slope, it starts to thin out, and can't be placed on ground steeper than 32°.
+
+### Infinite grass
+The grass buffer has a fixed size of `W × W` blades but it can follow the camera. The world is split into cells of size `2 * radius / W`, with one blade per cell, and each world cell always maps to the same slot in the blades buffer.
+
+When the camera moves, only slots which change (the ones on the edges of the window/region which just entered or left) will have their grass buffer entries updated. This helps make sure that grass blades don't move around within their cells when the camera moves.
+
+There is also a setting for "Grass Follows Camera" in the ImGui panel that can be manually toggled on or off. It is off by default. The benchmark mode turns this off, and is how I benchmarked the rest of the project.
 
 ## Implementation notes
 Using v-sync with a 240 Hz monitor causes frame rates to oscillate back and forth because frames are presented in pairs. The CPU waits for one image, and the next image is already free so the time waiting on the next swapchain image alternates between virtually instantaneous and having some wait time. As a workaround, I added an exponential moving average smoothed version of delta time to pass into the simulation shader so the simulation would be smoother.
